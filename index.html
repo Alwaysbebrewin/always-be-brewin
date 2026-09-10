@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -238,11 +239,13 @@ function App() {
     if (!query.trim()) return;
     setLoading(true); setSearched(true); setError(''); setCombos([]); setPrices({});
     try {
-      const proxy = 'https://corsproxy.io/?';
-      const url = `${proxy}${encodeURIComponent(`https://backend.commanderspellbook.com/api/variants/?q=${encodeURIComponent(query)}&format=edh`)}`;
+      const proxy = 'https://api.allorigins.win/get?url=';
+      const apiUrl = `https://backend.commanderspellbook.com/api/variants/?q=${encodeURIComponent(query)}&format=edh`;
+      const url = `${proxy}${encodeURIComponent(apiUrl)}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error();
-      const data = await res.json();
+      const wrapper = await res.json();
+      const data = typeof wrapper.contents === 'string' ? JSON.parse(wrapper.contents) : wrapper;
       const results = (data.results || data.variants || []).slice(0, 30);
       setCombos(results);
       const allCards = [...new Set(results.flatMap(c => c.uses?.map(u => u.card?.name).filter(Boolean) || []))];
