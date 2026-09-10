@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Always Be Brewin — MTG Combo Finder</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0e0f11; --surface: #16181c; --surface2: #1e2026;
+      --border: #2a2d35; --text: #f0f0f0; --text2: #8a8f9e;
+      --green: #4ade80; --blue: #60a5fa; --gold: #fbbf24;
+      --red: #f87171; --purple: #a78bfa; --radius: 10px;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; min-height: 100vh; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 56px; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 100; }
+    .nav-brand { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; color: var(--green); }
+    .nav-brand span { color: var(--text2); font-weight: 400; font-size: 13px; margin-left: 8px; }
+    .nav-tabs { display: flex; gap: 4px; }
+    .nav-tab { padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; background: transparent; color: var(--text2); transition: all .15s; font-family: 'Inter', sans-serif; }
+    .nav-tab:hover { background: var(--surface2); color: var(--text); }
+    .nav-tab.active { background: var(--surface2); color: var(--green); }
+    .main { max-width: 860px; margin: 0 auto; padding: 32px 24px; }
+    .hero { margin-bottom: 32px; }
+    .hero h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+    .hero h1 em { color: var(--green); font-style: normal; }
+    .hero p { color: var(--text2); font-size: 14px; line-height: 1.6; max-width: 520px; }
+    .search-bar { display: flex; gap: 10px; margin-bottom: 12px; }
+    .search-input { flex: 1; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 14px; font-family: 'Inter', sans-serif; outline: none; transition: border-color .15s; }
+    .search-input:focus { border-color: var(--green); }
+    .search-input::placeholder { color: var(--text2); }
+    .search-btn { padding: 12px 24px; background: var(--green); color: #0a1a0f; font-weight: 700; font-size: 14px; border: none; border-radius: var(--radius); cursor: pointer; font-family: 'Inter', sans-serif; transition: opacity .15s; white-space: nowrap; }
+    .search-btn:hover { opacity: .88; }
+    .search-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+    .filter-btn { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text2); transition: all .15s; font-family: 'Inter', sans-serif; }
+    .filter-btn:hover, .filter-btn.active { border-color: var(--green); color: var(--green); background: rgba(74,222,128,.08); }
+    .combo-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; transition: border-color .15s; }
+    .combo-card:hover { border-color: #3a3d45; }
+    .combo-header { display: flex; align-items: flex-start; gap: 16px; padding: 16px; cursor: pointer; }
+    .grade { width: 52px; height: 52px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; border: 2px solid; }
+    .grade-S { border-color: #4ade80; background: rgba(74,222,128,.12); }
+    .grade-A { border-color: #60a5fa; background: rgba(96,165,250,.12); }
+    .grade-B { border-color: #fbbf24; background: rgba(251,191,36,.12); }
+    .grade-C { border-color: #f87171; background: rgba(248,113,113,.12); }
+    .grade-letter { font-size: 20px; font-weight: 800; line-height: 1; }
+    .grade-S .grade-letter { color: #4ade80; }
+    .grade-A .grade-letter { color: #60a5fa; }
+    .grade-B .grade-letter { color: #fbbf24; }
+    .grade-C .grade-letter { color: #f87171; }
+    .grade-pts { font-size: 9px; color: var(--text2); margin-top: 1px; }
+    .combo-info { flex: 1; min-width: 0; }
+    .combo-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .combo-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .meta-pill { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+    .pill-type { background: rgba(96,165,250,.12); color: #60a5fa; }
+    .pill-price { background: rgba(74,222,128,.12); color: #4ade80; }
+    .pill-color { background: rgba(139,92,246,.12); color: #a78bfa; }
+    .pill-bracket { background: rgba(251,191,36,.12); color: #fbbf24; }
+    .combo-pieces { display: flex; gap: 6px; flex-wrap: wrap; }
+    .piece-tag { font-size: 11px; padding: 3px 8px; border-radius: 4px; background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+    .combo-expand { border-top: 1px solid var(--border); }
+    .expand-inner { padding: 16px; }
+    .axes { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .axis { display: flex; align-items: center; gap: 10px; }
+    .axis-name { font-size: 11px; color: var(--text2); min-width: 120px; }
+    .axis-track { flex: 1; height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+    .axis-fill { height: 100%; border-radius: 3px; }
+    .axis-val { font-size: 11px; font-weight: 600; min-width: 28px; text-align: right; }
+    .combo-desc { font-size: 12px; color: var(--text2); line-height: 1.7; margin-bottom: 16px; padding: 10px 12px; background: var(--surface2); border-radius: 6px; border-left: 2px solid var(--green); }
+    .buy-links { display: flex; gap: 8px; flex-wrap: wrap; }
+    .buy-link { font-size: 11px; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--text2); text-decoration: none; transition: all .15s; font-weight: 500; }
+    .buy-link:hover { border-color: var(--green); color: var(--green); }
+    .buy-link.tcg { border-color: rgba(96,165,250,.3); color: var(--blue); }
+    .buy-link.tcg:hover { border-color: var(--blue); }
+    .status { text-align: center; padding: 60px 20px; color: var(--text2); }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .lb-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); transition: background .15s; }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-row:hover { background: var(--surface2); }
+    .lb-rank { font-size: 13px; font-weight: 700; color: var(--text2); min-width: 24px; }
+    .lb-rank.top { color: var(--gold); }
+    .lb-name { flex: 1; font-size: 13px; font-weight: 500; }
+    .lb-price { font-size: 12px; color: var(--text2); min-width: 44px; text-align: right; }
+    .lb-score { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 20px; min-width: 64px; text-align: center; }
+    .lb-S { background: rgba(74,222,128,.15); color: #4ade80; }
+    .lb-A { background: rgba(96,165,250,.15); color: #60a5fa; }
+    .lb-B { background: rgba(251,191,36,.15); color: #fbbf24; }
+    .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .about-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .about-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--green); }
+    .about-card p { font-size: 13px; color: var(--text2); line-height: 1.6; }
+    .section-title { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
+    .card-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
+    .chevron { transition: transform .2s; display: inline-block; color: var(--text2); font-size: 12px; }
+    .chevron.open { transform: rotate(180deg); }
+    @media (max-width: 600px) {
+      .main { padding: 20px 16px; } .nav { padding: 0 16px; }
+      .nav-brand span { display: none; } .about-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const LEADERBOARD = [
+  { name: 'Herd Baloth + Ivy Lane Denizen', price: 1.79, score: 95, grade: 'S' },
+  { name: 'Presence of Gond + Midnight Guard', price: 0.52, score: 93, grade: 'S' },
+  { name: 'Basking Broodscale + Mazirek', price: 1.81, score: 92, grade: 'S' },
+  { name: 'Filigree Sages + Timeless Lotus', price: 6.06, score: 92, grade: 'S' },
+  { name: 'Taii Wakeen + Blazing Volley', price: 0.75, score: 91, grade: 'S' },
+  { name: 'Radagast + Psychosis Crawler + Snake Umbra', price: 4.92, score: 91, grade: 'S' },
+  { name: 'Scrawling Crawler + Forced Fruition + Narset', price: 15.53, score: 88, grade: 'S' },
+  { name: 'MOM + Otherworldly Atlas + Crawler', price: 68.27, score: 88, grade: 'S' },
+  { name: 'Bloodthirsty Conqueror + Blight-Priest', price: 18.98, score: 87, grade: 'A' },
+  { name: 'Radagast + Psychosis Crawler', price: 3.42, score: 86, grade: 'S' },
+  { name: 'Electro + Magda + Soulbright Flamekin', price: 6.85, score: 81, grade: 'A' },
+  { name: 'MOM + Otherworldly Atlas (base)', price: 61.50, score: 76, grade: 'A' },
+  { name: 'Bramble Sovereign + Notary Hobbits', price: 6.15, score: 74, grade: 'A' },
+  { name: 'Chatterfang Engine', price: 7.75, score: 54, grade: 'B' },
+];
+
+function scoreCombo(combo, price) {
+  const pieces = combo.uses?.length || 2;
+  const colors = combo.colorIdentity?.length || 1;
+  const desc = (combo.produces?.map(p => p.feature?.name || '').join(' ') + ' ' + (combo.description || '')).toLowerCase();
+  const effort = Math.max(0, Math.round(100 - ((pieces - 2) / 4) * 100));
+  const consistency = Math.max(0, Math.round(100 - colors * 12));
+  const budget = Math.max(0, Math.min(100, Math.round(100 - (price / 300) * 100)));
+  const disrupt = Math.max(10, Math.round(100 - pieces * 12));
+  const impact = desc.includes('win the game') ? 100 : desc.includes('infinite') || desc.includes('unlimited') ? 95 : desc.includes('each turn') || desc.includes('every turn') ? 85 : desc.includes('draw') || desc.includes('untap') ? 70 : desc.includes('damage') || desc.includes('token') ? 60 : 40;
+  const total = Math.round(effort * .35 + consistency * .30 + budget * .20 + disrupt * .10 + impact * .05);
+  const grade = total >= 80 ? 'S' : total >= 65 ? 'A' : total >= 45 ? 'B' : 'C';
+  return { total, grade, effort, consistency, budget, disrupt, impact };
+}
+
+function classifyType(combo) {
+  const text = (combo.produces?.map(p => p.feature?.name || '').join(' ') + ' ' + (combo.description || '')).toLowerCase();
+  if (text.includes('infinite')) return 'Infinite';
+  if (text.includes('win the game')) return 'Win Con';
+  if (text.includes('token')) return 'Token Engine';
+  if (text.includes('draw')) return 'Draw Engine';
+  if (text.includes('lock') || text.includes('opponent')) return 'Soft Lock';
+  if (text.includes('mana')) return 'Mana Engine';
+  return 'Synergy';
+}
+
+function ComboCard({ combo, prices }) {
+  const [open, setOpen] = useState(false);
+  const cards = combo.uses?.map(u => u.card?.name).filter(Boolean) || [];
+  const price = cards.reduce((s, c) => s + (prices[c] || 0), 0);
+  const sc = scoreCombo(combo, price);
+  const type = classifyType(combo);
+  const colors = (combo.colorIdentity || []).join('');
+  const axes = [
+    { name: 'Effort', val: sc.effort, color: '#4ade80' },
+    { name: 'Consistency', val: sc.consistency, color: '#60a5fa' },
+    { name: 'Budget', val: sc.budget, color: '#a78bfa' },
+    { name: 'Disruption Resist', val: sc.disrupt, color: '#fbbf24' },
+    { name: 'Board Impact', val: sc.impact, color: '#34d399' },
+  ];
+  return (
+    <div className="combo-card">
+      <div className="combo-header" onClick={() => setOpen(o => !o)}>
+        <div className={`grade grade-${sc.grade}`}>
+          <span className="grade-letter">{sc.grade}</span>
+          <span className="grade-pts">{sc.total}/100</span>
+        </div>
+        <div className="combo-info">
+          <div className="combo-title">{cards.join(' + ') || 'Unknown Combo'}</div>
+          <div className="combo-meta">
+            <span className="meta-pill pill-type">{type}</span>
+            <span className="meta-pill pill-price">${price.toFixed(2)}</span>
+            {colors && <span className="meta-pill pill-color">{colors}</span>}
+          </div>
+          <div className="combo-pieces">{cards.map(c => <span key={c} className="piece-tag">{c}</span>)}</div>
+        </div>
+        <span className={`chevron ${open ? 'open' : ''}`}>▼</span>
+      </div>
+      {open && (
+        <div className="combo-expand">
+          <div className="expand-inner">
+            {combo.description && <div className="combo-desc">{combo.description}</div>}
+            <div className="section-title" style={{marginBottom:8}}>ABB Score Breakdown</div>
+            <div className="axes">
+              {axes.map(a => (
+                <div key={a.name} className="axis">
+                  <span className="axis-name">{a.name}</span>
+                  <div className="axis-track"><div className="axis-fill" style={{width:`${a.val}%`,background:a.color}} /></div>
+                  <span className="axis-val" style={{color:a.color}}>{a.val}</span>
+                </div>
+              ))}
+            </div>
+            <div className="section-title">Buy Cards</div>
+            <div className="buy-links">
+              {cards.map(c => (
+                <a key={`tcg-${c}`} className="buy-link tcg" href={`https://www.tcgplayer.com/search/magic/product?q=${encodeURIComponent(c)}&utm_source=alwaysbebrewin`} target="_blank" rel="noopener noreferrer">TCG · {c}</a>
+              ))}
+              {cards.map(c => (
+                <a key={`ck-${c}`} className="buy-link" href={`https://www.cardkingdom.com/catalog/search?search=header&result=true&type=Names&q=${encodeURIComponent(c)}`} target="_blank" rel="noopener noreferrer">CK · {c}</a>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function App() {
+  const [tab, setTab] = useState('finder');
+  const [query, setQuery] = useState('');
+  const [combos, setCombos] = useState([]);
+  const [prices, setPrices] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [filter, setFilter] = useState('all');
+  const [error, setError] = useState('');
+
+  async function fetchPrice(name) {
+    try {
+      const r = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`);
+      if (!r.ok) return 0;
+      const d = await r.json();
+      return parseFloat(d.prices?.usd || 0);
+    } catch { return 0; }
+  }
+
+  async function search() {
+    if (!query.trim()) return;
+    setLoading(true); setSearched(true); setError(''); setCombos([]); setPrices({});
+    try {
+      const proxy = 'https://corsproxy.io/?';
+      const url = `${proxy}${encodeURIComponent(`https://backend.commanderspellbook.com/api/variants/?q=${encodeURIComponent(query)}&format=edh`)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const results = (data.results || data.variants || []).slice(0, 30);
+      setCombos(results);
+      const allCards = [...new Set(results.flatMap(c => c.uses?.map(u => u.card?.name).filter(Boolean) || []))];
+      const entries = await Promise.all(allCards.map(async n => [n, await fetchPrice(n)]));
+      setPrices(Object.fromEntries(entries));
+    } catch {
+      setError('Could not reach Commander Spellbook. Check your connection and try again.');
+    } finally { setLoading(false); }
+  }
+
+  const FILTERS = ['all','Infinite','Token Engine','Draw Engine','Soft Lock','Mana Engine'];
+  const filtered = combos.filter(c => filter === 'all' || classifyType(c) === filter);
+
+  return (
+    <>
+      <nav className="nav">
+        <div className="nav-brand">🍺 Always Be Brewin <span>MTG Combo Finder</span></div>
+        <div className="nav-tabs">
+          {[['finder','Combos'],['leaderboard','Leaderboard'],['about','Scoring']].map(([id,label]) => (
+            <button key={id} className={`nav-tab ${tab===id?'active':''}`} onClick={() => setTab(id)}>{label}</button>
+          ))}
+        </div>
+      </nav>
+      <div className="main">
+        {tab === 'finder' && (
+          <>
+            <div className="hero">
+              <h1>Find your <em>next combo</em></h1>
+              <p>Search any card — scored instantly with the ABB Value System across effort, consistency, budget, disruption resistance, and board impact.</p>
+            </div>
+            <div className="search-bar">
+              <input className="search-input" placeholder="Card name — e.g. Herd Baloth, Thassa, Sol Ring..." value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key==='Enter' && search()} />
+              <button className="search-btn" onClick={search} disabled={loading}>{loading ? 'Searching...' : 'Find Combos'}</button>
+            </div>
+            <div className="filters">
+              {FILTERS.map(f => <button key={f} className={`filter-btn ${filter===f?'active':''}`} onClick={() => setFilter(f)}>{f==='all'?'All types':f}</button>)}
+            </div>
+            {loading && <div className="status"><div className="spinner"/><div>Scoring results from Commander Spellbook...</div></div>}
+            {error && <div className="status" style={{color:'var(--red)'}}>{error}</div>}
+            {!loading && searched && filtered.length === 0 && !error && <div className="status">No combos found for "{query}".</div>}
+            {!loading && !searched && <div className="status"><div style={{fontSize:32,marginBottom:12}}>🍺</div><div style={{fontWeight:600,marginBottom:6}}>Start brewing</div><div>Enter any card name to find and score every combo it enables.</div></div>}
+            {filtered.map((c,i) => <ComboCard key={c.id||i} combo={c} prices={prices} />)}
+            {filtered.length > 0 && <div style={{textAlign:'center',padding:'16px 0',color:'var(--text2)',fontSize:12}}>Showing {filtered.length} combo{filtered.length!==1?'s':''} · Prices from Scryfall · Combos from Commander Spellbook</div>}
+          </>
+        )}
+        {tab === 'leaderboard' && (
+          <>
+            <div className="hero"><h1>ABB <em>Leaderboard</em></h1><p>Every hand-scored combo — ranked by the ABB Value System.</p></div>
+            <div className="card-wrap">
+              {LEADERBOARD.map((c,i) => (
+                <div key={c.name} className="lb-row">
+                  <span className={`lb-rank ${i<3?'top':''}`}>#{i+1}</span>
+                  <span className="lb-name">{c.name}</span>
+                  <span className="lb-price">${c.price.toFixed(2)}</span>
+                  <span className={`lb-score lb-${c.grade}`}>{c.grade} · {c.score}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        {tab === 'about' && (
+          <>
+            <div className="hero"><h1>The ABB <em>Scoring System</em></h1><p>Five weighted axes, live pricing, zero guesswork. Every combo scored 0–100.</p></div>
+            <div className="section-title">Score Axes</div>
+            <div className="about-grid" style={{marginBottom:24}}>
+              {[
+                ['Effort (35%)','Fewer pieces = higher score. 2-card combos score near-perfect.'],
+                ['Consistency (30%)','Mono-color scores highest. Each extra color costs 12 points.'],
+                ['Budget (20%)','Live prices from Scryfall. $1 combos score near-perfect.'],
+                ['Disruption Resist (10%)','Fewer pieces = fewer removal targets. 2-card combos win.'],
+                ['Board Impact (5%)','Infinite = 95. Sustained advantage = 85. Burst = 70.'],
+              ].map(([n,d]) => <div key={n} className="about-card"><h3>{n}</h3><p>{d}</p></div>)}
+            </div>
+            <div className="section-title">Grades</div>
+            <div className="about-grid">
+              {[['S','80–100','#4ade80','Elite. Run this.'],['A','65–79','#60a5fa','Strong. Worth including.'],['B','45–64','#fbbf24','Situational. Right shell matters.'],['C','0–44','#f87171','Weak. Usually better options exist.']].map(([g,r,c,d]) => (
+                <div key={g} className="about-card" style={{borderColor:c+'44'}}>
+                  <h3 style={{color:c}}>{g} · {r}</h3><p>{d}</p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+</body>
+</html>
