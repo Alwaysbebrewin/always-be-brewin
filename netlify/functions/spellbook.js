@@ -1,6 +1,5 @@
 const CANDIDATE_BASE_URLS = [
-  'https://backend.commanderspellbook.com/api/variants/',
-  'https://commanderspellbook.com/api/variants/'
+  'https://backend.commanderspellbook.com/variants/'
 ];
 
 exports.handler = async (event) => {
@@ -13,7 +12,9 @@ exports.handler = async (event) => {
     const url = `${baseUrl}?q=${encodeURIComponent(q)}&format=edh&limit=30`;
 
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'AlwaysBeBrewin/1.0' }
+      });
       console.log(`[spellbook] GET ${url} -> ${res.status}`);
 
       if (!res.ok) {
