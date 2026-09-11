@@ -174,6 +174,27 @@ function classifyType(combo) {
 }
 
 const COLOR_NAMES = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' };
+const WUBRG_ORDER = ['W', 'U', 'B', 'R', 'G'];
+const COLOR_IDENTITY_NAMES = {
+  '': 'Colorless',
+  W: 'Mono-White', U: 'Mono-Blue', B: 'Mono-Black', R: 'Mono-Red', G: 'Mono-Green',
+  WU: 'Azorius', UB: 'Dimir', BR: 'Rakdos', RG: 'Gruul', WG: 'Selesnya',
+  WB: 'Orzhov', UR: 'Izzet', BG: 'Golgari', WR: 'Boros', UG: 'Simic',
+  WUB: 'Esper', UBR: 'Grixis', BRG: 'Jund', WRG: 'Naya', WUG: 'Bant',
+  WBG: 'Abzan', WUR: 'Jeskai', UBG: 'Sultai', WBR: 'Mardu', URG: 'Temur',
+  WUBR: 'Yore-Tiller', UBRG: 'Glint-Eye', WBRG: 'Dune-Brood', WURG: 'Ink-Treader', WUBG: 'Witch-Maw',
+  WUBRG: 'Five-Color',
+};
+
+// Canonicalizes a color-identity array to WUBRG order so the wedge/guild
+// name is correct regardless of the order colors were listed in.
+function colorIdentityLabel(colorsArr) {
+  if (!colorsArr) return null;
+  const canonical = WUBRG_ORDER.filter(c => colorsArr.includes(c)).join('');
+  const name = COLOR_IDENTITY_NAMES[canonical] || `${colorsArr.length}-color`;
+  const letters = colorsArr.join('');
+  return letters ? `${name} (${letters})` : name;
+}
 
 function getMetrics(combo, sc, price, pieces) {
   const colors = combo.colorIdentity || [];
@@ -209,7 +230,6 @@ function ComboCard({ combo, prices }) {
   const price = cards.reduce((s, c) => s + (prices[c] || 0), 0);
   const sc = scoreCombo(combo, price);
   const type = classifyType(combo);
-  const colors = (combo.colorIdentity || []).join('');
   const metrics = getMetrics(combo, sc, price, cards.length);
   const axes = [
     { name: 'Effort', val: sc.effort, color: '#4ade80', weight: 35 },
@@ -232,7 +252,7 @@ function ComboCard({ combo, prices }) {
             {combo.abbVerified && <span className="meta-pill pill-abb" style={{background:'rgba(74,222,128,0.15)',color:'#4ade80',border:'1px solid rgba(74,222,128,0.35)',fontWeight:600}}>✓ ABB Verified</span>}
             <span className="meta-pill pill-type">{type}</span>
             <span className="meta-pill pill-price">${price.toFixed(2)}</span>
-            {colors && <span className="meta-pill pill-color">{colors}</span>}
+            {combo.colorIdentity && <span className="meta-pill pill-color">{colorIdentityLabel(combo.colorIdentity)}</span>}
           </div>
           <div className="combo-pieces">{cards.map(c => <span key={c} className="piece-tag">{c}</span>)}</div>
         </div>
@@ -350,6 +370,7 @@ const ABB_COMBOS = [
   { id:'abb-12', abbVerified:true, uses:[{card:{name:'Mind Over Matter'}},{card:{name:'Otherworldly Atlas'}},{card:{name:'Scrawling Crawler'}}], colorIdentity:['U'], description:'Tap Otherworldly Atlas (2+ counters) to draw cards for each player. Discard a card to Mind Over Matter to untap Atlas. Net +1 card per cycle. Scrawling Crawler deals 1 life to each opponent per draw. Loop until opponents are drained or decked.', produces:[{feature:{name:'Card draw'}},{feature:{name:'Life drain'}}], verdict:[{color:'green',title:'Strengths',body:'Draws the whole table while draining every opponent — a genuine alternate win con.'},{color:'blue',title:'Best deck for it',body:'Mono-blue or Dimir wheel/group-draw decks that already want Otherworldly Atlas online.'},{color:'orange',title:'Watch out for',body:'Otherworldly Atlas needs 2+ counters before the loop even starts — set it up first.'},{color:'red',title:'Skip if',body:'You don\'t want to give opponents cards too, since Atlas draws for every player.'}] },
   { id:'abb-13', abbVerified:true, uses:[{card:{name:'Skullclamp'}},{card:{name:'Memnite'}},{card:{name:'Koll, the Forgemaster'}},{card:{name:'Bladehold War-Whip'}}], colorIdentity:['R','W'], description:'Equip Skullclamp to Memnite — it becomes 2/0 and dies immediately, drawing 2 cards. Koll, the Forgemaster returns the equipped Memnite to your hand for free the instant it dies, while Skullclamp itself stays on the battlefield, unattached. Bladehold War-Whip reduces the equip cost of your other Equipment by 1, dropping Skullclamp\'s equip cost to 0 — so recasting Memnite for 0 and re-equipping Skullclamp for 0 is a completely free loop that draws your entire library.', produces:[{feature:{name:'Infinite card draw'}}], verdict:[{color:'green',title:'Strengths',body:'A completely free loop once assembled — draws your whole deck for zero mana per cycle.'},{color:'blue',title:'Best deck for it',body:'Boros equipment or aristocrats decks that already run Skullclamp as a draw engine.'},{color:'orange',title:'Watch out for',body:'Koll only returns nontoken creatures, so it must be Memnite specifically — a token stand-in won\'t work.'},{color:'red',title:'Skip if',body:'You don\'t already run Skullclamp, since it\'s the one piece doing the actual card-draw work.'}] },
   { id:'abb-14', abbVerified:true, uses:[{card:{name:'Crackdown Construct'}},{card:{name:'Lightning Greaves'}},{card:{name:'Ornithopter'}}], colorIdentity:[], description:'Equip Lightning Greaves — equip cost {0} — to any creature. Because equipping is an activated ability of an artifact (not a mana ability), it triggers Crackdown Construct for +1/+1 until end of turn no matter which creature the Greaves are attached to. Re-equip it again and again for free, pumping Construct into a lethal attacker in a single turn, then move the Greaves onto Construct itself before swinging for haste and shroud. Ornithopter is a second 0-cost artifact body to hold the Greaves on as a backup if Construct gets removed.', produces:[{feature:{name:'Repeatable pump'}},{feature:{name:'Lethal damage'}}], verdict:[{color:'green',title:'Strengths',body:'Turns a 0-mana equip ability into unlimited free pump for a one-turn kill.'},{color:'blue',title:'Best deck for it',body:'Mono-colorless or artifact aggro decks that want a cheap, resilient finisher.'},{color:'orange',title:'Watch out for',body:'Crackdown Construct\'s pump is only until end of turn — you must swing the same turn you build it.'},{color:'red',title:'Skip if',body:'You lack evasion for Construct, since a ground stall lets opponents just chump block the kill.'}] },
+  { id:'abb-15', abbVerified:true, uses:[{card:{name:"Hawkeye's Bow"}},{card:{name:"Pemmin's Aura"}},{card:{name:'Birds of Paradise'}}], colorIdentity:['G','U','R'], description:"Equip Hawkeye's Bow to Birds of Paradise, then enchant Birds with Pemmin's Aura. Tap Birds for {U} — Hawkeye's Bow triggers for 1 damage to each opponent since Birds just became tapped, and that same {U} pays Pemmin's Aura's untap ability to untap Birds again. Net mana cost per cycle is zero, so it's a true infinite loop that puts every opponent to zero life. Comes online as early as Turn 4 off a Forest/Mountain/Island/Island curve — Birds Turn 1, Bow cast and equipped Turn 2, Pemmin's Aura Turn 4 once you have double blue.", produces:[{feature:{name:'Infinite damage to each opponent'}},{feature:{name:'Win the game'}}], upgrades:[{card:'Freed from the Real (~$1)',why:"Replaces Pemmin's Aura at a fraction of the price with the same {U}: untap ability. Run both for redundancy."},{card:'Seeker of Skybreak (~$2)',why:"Untaps itself for free — swap it in and you don't need Birds or Pemmin's Aura at all. It's the real 2-card version that got it Pauper-banned alongside Hawkeye's Bow."},{card:'Sol Ring (~$2)',why:"Extra colorless mana deploys your pieces a turn faster, though you still need a dedicated red source for the Bow and double blue for Pemmin's Aura."}], verdict:[{color:'green',title:'Strengths',body:'A genuine infinite damage loop at zero net mana cost once assembled — kills the whole table at once.'},{color:'blue',title:'Best deck for it',body:'Temur ramp or ping decks that already run Birds of Paradise as an early mana dork.'},{color:'orange',title:'Watch out for',body:"Three pieces across three colors means more removal windows — Birds dying before Pemmin's Aura resolves sets you back a turn."},{color:'red',title:'Skip if',body:"You don't want to run three specific colors just for one combo — Seeker of Skybreak alone is a leaner, cheaper alternative."}] },
 ];
 
 function App() {
