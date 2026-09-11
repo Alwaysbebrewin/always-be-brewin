@@ -30,13 +30,19 @@
     .hero h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
     .hero h1 em { color: var(--green); font-style: normal; }
     .hero p { color: var(--text2); font-size: 14px; line-height: 1.6; max-width: 520px; }
-    .search-bar { display: flex; gap: 10px; margin-bottom: 12px; }
-    .search-input { flex: 1; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 14px; font-family: 'Inter', sans-serif; outline: none; transition: border-color .15s; }
+    .search-panel { margin-bottom: 12px; }
+    .search-row { display: flex; gap: 10px; }
+    .card-field { margin-bottom: 8px; }
+    .card-label { display: block; font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; }
+    .search-input { flex: 1; width: 100%; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 14px; font-family: 'Inter', sans-serif; outline: none; transition: border-color .15s; }
     .search-input:focus { border-color: var(--green); }
     .search-input::placeholder { color: var(--text2); }
+    .search-input-sm { padding: 9px 14px; font-size: 13px; max-width: 320px; }
     .search-btn { padding: 12px 24px; background: var(--green); color: #0a1a0f; font-weight: 700; font-size: 14px; border: none; border-radius: var(--radius); cursor: pointer; font-family: 'Inter', sans-serif; transition: opacity .15s; white-space: nowrap; }
     .search-btn:hover { opacity: .88; }
     .search-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .add-card-link { background: none; border: none; color: var(--green); font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; padding: 4px 0; }
+    .add-card-link:hover { text-decoration: underline; }
     .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
     .filter-btn { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text2); transition: all .15s; font-family: 'Inter', sans-serif; }
     .filter-btn:hover, .filter-btn.active { border-color: var(--green); color: var(--green); background: rgba(74,222,128,.08); }
@@ -297,7 +303,8 @@ const ABB_COMBOS = [
 
 function App() {
   const [tab, setTab] = useState('finder');
-  const [query, setQuery] = useState('');
+  const [cardInputs, setCardInputs] = useState(['', '', '', '']);
+  const [visibleCount, setVisibleCount] = useState(1);
   const [combos, setCombos] = useState([]);
   const [prices, setPrices] = useState({});
   const [loading, setLoading] = useState(false);
@@ -314,19 +321,31 @@ function App() {
     } catch { return 0; }
   }
 
+  function updateCard(i, val) {
+    setCardInputs(prev => {
+      const next = [...prev];
+      next[i] = val;
+      return next;
+    });
+  }
+
   async function search() {
-    if (!query.trim()) return;
+    const filledCards = cardInputs.slice(0, visibleCount).map(c => c.trim()).filter(Boolean);
+    if (filledCards.length === 0) return;
     setLoading(true); setSearched(true); setError(''); setCombos([]); setPrices({});
     try {
-      const q = query.toLowerCase();
       const abbResults = ABB_COMBOS.filter(c =>
-        c.uses.some(u => u.card.name.toLowerCase().includes(q)) ||
-        (c.description || '').toLowerCase().includes(q)
+        filledCards.every(term => {
+          const t = term.toLowerCase();
+          return c.uses.some(u => u.card.name.toLowerCase().includes(t)) ||
+            (c.description || '').toLowerCase().includes(t);
+        })
       );
 
+      const liveQuery = filledCards.map(c => `card:"${c}"`).join(' ');
       let liveResults = [];
       try {
-        const r = await fetch(`/.netlify/functions/spellbook?q=${encodeURIComponent(query)}`);
+        const r = await fetch(`/.netlify/functions/spellbook?q=${encodeURIComponent(liveQuery)}`);
         if (r.ok) {
           const data = await r.json();
           liveResults = data.results || data.variants || [];
@@ -371,16 +390,33 @@ function App() {
               <h1>Find your <em>next combo</em></h1>
               <p>Search any card — scored instantly with the ABB Value System across effort, consistency, budget, disruption resistance, and board impact.</p>
             </div>
-            <div className="search-bar">
-              <input className="search-input" placeholder="Search by card name — e.g. Herd Baloth or Taii Wakeen Blazing Volley" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key==='Enter' && search()} />
-              <button className="search-btn" onClick={search} disabled={loading}>{loading ? 'Searching...' : 'Find Combos'}</button>
+            <div className="search-panel">
+              <div className="card-field">
+                <label className="card-label">Card 1</label>
+                <div className="search-row">
+                  <input className="search-input" placeholder="e.g. Herd Baloth" value={cardInputs[0]} onChange={e => updateCard(0, e.target.value)} onKeyDown={e => e.key==='Enter' && search()} />
+                  <button className="search-btn" onClick={search} disabled={loading}>{loading ? 'Searching...' : 'Find Combos'}</button>
+                </div>
+              </div>
+              {cardInputs.slice(1, visibleCount).map((val, idx) => {
+                const i = idx + 1;
+                return (
+                  <div className="card-field" key={i}>
+                    <label className="card-label">Card {i + 1}</label>
+                    <input className="search-input search-input-sm" placeholder="optional" value={val} onChange={e => updateCard(i, e.target.value)} onKeyDown={e => e.key==='Enter' && search()} />
+                  </div>
+                );
+              })}
+              {visibleCount < 4 && (
+                <button type="button" className="add-card-link" onClick={() => setVisibleCount(v => Math.min(4, v + 1))}>+ Add card</button>
+              )}
             </div>
             <div className="filters">
               {FILTERS.map(f => <button key={f} className={`filter-btn ${filter===f?'active':''}`} onClick={() => setFilter(f)}>{f==='all'?'All types':f}</button>)}
             </div>
             {loading && <div className="status"><div className="spinner"/><div>Scoring results from Commander Spellbook...</div></div>}
             {error && <div className="status" style={{color:'var(--red)'}}>{error}</div>}
-            {!loading && searched && filtered.length === 0 && !error && <div className="status">No combos found for "{query}".</div>}
+            {!loading && searched && filtered.length === 0 && !error && <div className="status">No combos found for "{cardInputs.slice(0, visibleCount).map(c => c.trim()).filter(Boolean).join(' + ')}".</div>}
             {!loading && !searched && <div className="status"><div style={{fontSize:32,marginBottom:12}}>🍺</div><div style={{fontWeight:600,marginBottom:6}}>Start brewing</div><div style={{marginBottom:8}}>Search any card from our hand-scored ABB database.</div><div style={{fontSize:11,color:'var(--text2)'}}>Try: Herd Baloth · Midnight Guard · Mazirek · Taii Wakeen · Scrawling Crawler</div></div>}
             {filtered.map((c,i) => <ComboCard key={c.id||i} combo={c} prices={prices} />)}
             {filtered.length > 0 && <div style={{textAlign:'center',padding:'16px 0',color:'var(--text2)',fontSize:12}}>Showing {filtered.length} combo{filtered.length!==1?'s':''} · Prices from Scryfall · Combos from Commander Spellbook</div>}
