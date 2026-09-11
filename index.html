@@ -372,7 +372,7 @@ function App() {
               <p>Search any card — scored instantly with the ABB Value System across effort, consistency, budget, disruption resistance, and board impact.</p>
             </div>
             <div className="search-bar">
-              <input className="search-input" placeholder="Card name — e.g. Herd Baloth, Thassa, Sol Ring..." value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key==='Enter' && search()} />
+              <input className="search-input" placeholder="Search by card name — e.g. Herd Baloth or Taii Wakeen Blazing Volley" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key==='Enter' && search()} />
               <button className="search-btn" onClick={search} disabled={loading}>{loading ? 'Searching...' : 'Find Combos'}</button>
             </div>
             <div className="filters">
