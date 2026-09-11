@@ -80,6 +80,14 @@
     .axis-val { font-size: 11px; font-weight: 600; min-width: 28px; text-align: right; }
     .combo-desc { font-size: 12px; color: var(--text2); line-height: 1.7; margin-bottom: 16px; padding: 10px 12px; background: var(--surface2); border-radius: 6px; border-left: 2px solid var(--green); }
     .axis-points { font-size: 11px; color: var(--text2); min-width: 56px; text-align: right; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .metric-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 10px; text-align: center; }
+    .metric-icon { font-size: 18px; line-height: 1; margin-bottom: 6px; }
+    .metric-name { font-size: 10px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+    .metric-track { height: 4px; background: var(--surface); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+    .metric-fill { height: 100%; border-radius: 3px; }
+    .metric-value { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+    .metric-sub { font-size: 10px; color: var(--text2); line-height: 1.35; }
     .verdict-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .verdict-box { border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.6; }
     .verdict-title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 5px; }
@@ -114,6 +122,7 @@
       .main { padding: 20px 16px; } .nav { padding: 0 16px; }
       .nav-brand span { display: none; } .about-grid { grid-template-columns: 1fr; }
       .verdict-grid { grid-template-columns: 1fr; }
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
@@ -164,6 +173,35 @@ function classifyType(combo) {
   return 'Synergy';
 }
 
+const COLOR_NAMES = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' };
+
+function getMetrics(combo, sc, price, pieces) {
+  const colors = combo.colorIdentity || [];
+
+  const effortSub = sc.effort >= 90 ? 'Perfect piece count' : sc.effort >= 60 ? 'Great piece count' : sc.effort >= 35 ? 'Good piece count' : 'Many pieces required';
+
+  const consistencySub = colors.length === 0 ? 'Colorless — any deck'
+    : colors.length === 1 ? `Mono-${COLOR_NAMES[colors[0]] || colors[0]} only`
+    : colors.length === 2 ? `${colors.map(c => COLOR_NAMES[c] || c).join('/')} — two colors`
+    : `${colors.length}-color multicolor`;
+
+  const budgetSub = sc.budget >= 90 ? 'Near perfect' : sc.budget >= 70 ? 'Great value' : sc.budget >= 40 ? 'Reasonable cost' : 'Pricey';
+
+  const disruptValue = sc.disrupt >= 70 ? 'High' : sc.disrupt >= 45 ? 'Medium' : 'Low';
+  const disruptSub = `${pieces} target${pieces !== 1 ? 's' : ''} for removal`;
+
+  const impactValue = combo.produces?.[0]?.feature?.name || classifyType(combo);
+  const impactSub = sc.impact >= 90 ? 'Game-ending' : sc.impact >= 70 ? 'Very strong' : sc.impact >= 50 ? 'Solid value' : 'Modest impact';
+
+  return [
+    { icon: '⚡', name: 'Effort', val: sc.effort, value: `${pieces} piece${pieces !== 1 ? 's' : ''}`, sub: effortSub, color: '#4ade80' },
+    { icon: '🎯', name: 'Consistency', val: sc.consistency, value: `${sc.consistency}%`, sub: consistencySub, color: '#60a5fa' },
+    { icon: '💵', name: 'Budget', val: sc.budget, value: `$${price.toFixed(2)}`, sub: budgetSub, color: '#a78bfa' },
+    { icon: '🛡️', name: 'Disruption Resist', val: sc.disrupt, value: disruptValue, sub: disruptSub, color: '#fbbf24' },
+    { icon: '📈', name: 'Board Impact', val: sc.impact, value: impactValue, sub: impactSub, color: '#34d399' },
+  ];
+}
+
 function ComboCard({ combo, prices }) {
   const [open, setOpen] = useState(false);
   const [fullOpen, setFullOpen] = useState(false);
@@ -172,6 +210,7 @@ function ComboCard({ combo, prices }) {
   const sc = scoreCombo(combo, price);
   const type = classifyType(combo);
   const colors = (combo.colorIdentity || []).join('');
+  const metrics = getMetrics(combo, sc, price, cards.length);
   const axes = [
     { name: 'Effort', val: sc.effort, color: '#4ade80', weight: 35 },
     { name: 'Consistency', val: sc.consistency, color: '#60a5fa', weight: 30 },
@@ -245,6 +284,18 @@ function ComboCard({ combo, prices }) {
                       </div>
                     );
                   })}
+                </div>
+                <div className="section-title" style={{marginBottom:8}}>Metrics</div>
+                <div className="metrics-grid" style={{marginBottom:16}}>
+                  {metrics.map(m => (
+                    <div key={m.name} className="metric-card">
+                      <div className="metric-icon">{m.icon}</div>
+                      <div className="metric-name">{m.name}</div>
+                      <div className="metric-track"><div className="metric-fill" style={{width:`${m.val}%`,background:m.color}} /></div>
+                      <div className="metric-value" style={{color:m.color}}>{m.value}</div>
+                      <div className="metric-sub">{m.sub}</div>
+                    </div>
+                  ))}
                 </div>
                 {combo.verdict && (
                   <>
