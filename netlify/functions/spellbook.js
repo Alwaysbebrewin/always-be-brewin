@@ -9,7 +9,7 @@ exports.handler = async (event) => {
   let lastError = null;
 
   for (const baseUrl of CANDIDATE_BASE_URLS) {
-    const url = `${baseUrl}?q=${encodeURIComponent(q)}&format=edh&limit=30`;
+    const url = `${baseUrl}?q=${encodeURIComponent(`card:"${q}"`)}&limit=30`;
 
     try {
       const res = await fetch(url, {
