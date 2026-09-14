@@ -96,6 +96,9 @@
     .buy-link:hover { border-color: var(--green); color: var(--green); }
     .buy-link.tcg { border-color: rgba(96,165,250,.3); color: var(--blue); }
     .buy-link.tcg:hover { border-color: var(--blue); }
+    .buy-link.outpost { border-color: #EF9F27; background: rgba(239,159,39,.1); color: #EF9F27; font-weight: 600; }
+    .buy-link.outpost:hover { background: rgba(239,159,39,.2); border-color: #EF9F27; }
+    .buy-link-sub { display: block; font-size: 9px; font-weight: 400; opacity: .8; }
     .status { text-align: center; padding: 60px 20px; color: var(--text2); }
     .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -273,6 +276,9 @@ function ComboCard({ combo, prices }) {
             </div>
             <div className="section-title" style={{marginTop:14}}>Buy Cards</div>
             <div className="buy-links" style={{marginBottom:14}}>
+              {cards.map(c => (
+                <a key={`outpost-${c}`} className="buy-link outpost" title="Local LGS" href={`https://gameoutpost.com/search?type=product&q=${encodeURIComponent(c)}&filter.v.collection.handle=all-singles`} target="_blank" rel="noopener noreferrer">🏪 Game Outpost · {c}<span className="buy-link-sub">Local LGS</span></a>
+              ))}
               {cards.map(c => (
                 <a key={`tcg-${c}`} className="buy-link tcg" href={`https://www.tcgplayer.com/search/magic/product?q=${encodeURIComponent(c)}&utm_source=alwaysbebrewin`} target="_blank" rel="noopener noreferrer">TCG · {c}</a>
               ))}
