@@ -121,6 +121,18 @@
     .card-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
     .chevron { transition: transform .2s; display: inline-block; color: var(--text2); font-size: 12px; }
     .chevron.open { transform: rotate(180deg); }
+    .visitor-badge {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      color: var(--text2);
+      z-index: 50;
+    }
     @media (max-width: 600px) {
       .main { padding: 20px 16px; } .nav { padding: 0 16px; }
       .nav-brand span { display: none; } .about-grid { grid-template-columns: 1fr; }
@@ -135,31 +147,57 @@
 const { useState } = React;
 
 const LEADERBOARD = [
-  { name: 'Herd Baloth + Ivy Lane Denizen', price: 1.79, score: 95, grade: 'S' },
-  { name: 'Presence of Gond + Midnight Guard', price: 0.52, score: 93, grade: 'S' },
-  { name: 'Basking Broodscale + Mazirek', price: 1.81, score: 92, grade: 'S' },
-  { name: 'Filigree Sages + Timeless Lotus', price: 6.06, score: 92, grade: 'S' },
-  { name: 'Taii Wakeen + Blazing Volley', price: 0.75, score: 91, grade: 'S' },
-  { name: 'Scrawling Crawler + Forced Fruition + Narset', price: 15.53, score: 88, grade: 'S' },
-  { name: 'MOM + Otherworldly Atlas + Crawler', price: 68.27, score: 88, grade: 'S' },
-  { name: 'Bloodthirsty Conqueror + Blight-Priest', price: 18.98, score: 87, grade: 'A' },
-  { name: 'Radagast + Psychosis Crawler', price: 3.42, score: 86, grade: 'S' },
-  { name: 'Electro + Magda + Soulbright Flamekin', price: 6.85, score: 81, grade: 'A' },
-  { name: 'MOM + Otherworldly Atlas (base)', price: 61.50, score: 76, grade: 'A' },
-  { name: 'Bramble Sovereign + Notary Hobbits', price: 6.15, score: 74, grade: 'A' },
-  { name: 'Chatterfang Engine', price: 7.75, score: 54, grade: 'B' },
+  { name: 'Taii Wakeen + Blazing Volley',                price: 0.75,  score: 93, grade: 'S', colors: 'RW',    pieces: 2, type: 'Soft Lock' },
+  { name: 'Presence of Gond + Midnight Guard',           price: 0.52,  score: 90, grade: 'S', colors: 'GW',    pieces: 2, type: 'Infinite Tokens' },
+  { name: 'Basking Broodscale + Mazirek',                price: 1.81,  score: 87, grade: 'S', colors: 'BG',    pieces: 2, type: 'Infinite Loop' },
+  { name: 'Herd Baloth + Ivy Lane Denizen',              price: 1.79,  score: 84, grade: 'S', colors: 'G',     pieces: 2, type: 'Infinite Tokens' },
+  { name: 'Crackdown Construct + Greaves + Ornithopter', price: 3.50,  score: 84, grade: 'S', colors: '—',     pieces: 3, type: 'Glass Cannon' },
+  { name: 'Silver Myr + Hawkeye\'s Bow + Freed',        price: 1.97,  score: 83, grade: 'S', colors: 'U',     pieces: 3, type: 'Infinite Damage' },
+  { name: 'Radagast + Psychosis Crawler',                price: 3.42,  score: 80, grade: 'S', colors: 'G',     pieces: 2, type: 'Drain Engine' },
+  { name: 'Bloodthirsty Conqueror + Blight-Priest',     price: 18.98, score: 79, grade: 'A', colors: 'B',     pieces: 2, type: 'Drain Engine' },
+  { name: 'Fateful Discovery + Locust God + Donatello', price: 23.49, score: 79, grade: 'A', colors: 'UR',    pieces: 3, type: 'Draw Engine' },
+  { name: 'Hawkeye\'s Bow + Pemmin\'s Aura + Birds',   price: 6.79,  score: 78, grade: 'A', colors: 'GUR',   pieces: 3, type: 'Infinite Damage' },
+  { name: 'Shorikai + Palladium Myr + Intruder Alarm',  price: 28.50, score: 76, grade: 'A', colors: 'WU',    pieces: 3, type: 'Infinite Loop' },
+  { name: 'Filigree Sages + Timeless Lotus',            price: 6.06,  score: 68, grade: 'A', colors: 'WUBRG', pieces: 2, type: 'Infinite Mana' },
+  { name: 'Bramble Sovereign + Notary Hobbits',         price: 6.15,  score: 66, grade: 'A', colors: 'G',     pieces: 2, type: 'Token Engine' },
+  { name: 'Electro + Magda + Soulbright Flamekin',      price: 6.85,  score: 65, grade: 'A', colors: 'R',     pieces: 3, type: 'Mana Engine' },
+  { name: 'Scrawling Crawler + Forced Fruition + Narset', price: 15.53, score: 63, grade: 'B', colors: 'U',   pieces: 3, type: 'Hard Lock' },
+  { name: 'Memnite + War-Whip + Koll + Skullclamp',    price: 3.06,  score: 55, grade: 'B', colors: 'RW',    pieces: 4, type: 'Draw Engine' },
+  { name: 'Aquamoeba Engine',                           price: 11.20, score: 54, grade: 'B', colors: 'U',     pieces: 4, type: 'Draw Engine' },
+  { name: 'Chatterfang Engine',                         price: 7.75,  score: 52, grade: 'B', colors: 'BG',    pieces: 4, type: 'Token Engine' },
 ];
 
-function scoreCombo(combo, price) {
+function scoreCombo(combo, totalPrice) {
   const pieces = combo.uses?.length || 2;
   const colors = combo.colorIdentity?.length || 1;
   const desc = (combo.produces?.map(p => p.feature?.name || '').join(' ') + ' ' + (combo.description || '')).toLowerCase();
-  const effort = Math.max(0, Math.round(100 - ((pieces - 2) / 4) * 100));
-  const consistency = Math.max(0, Math.round(100 - colors * 12));
-  const budget = Math.max(0, Math.min(100, Math.round(100 - (price / 300) * 100)));
-  const disrupt = Math.max(10, Math.round(100 - pieces * 12));
-  const impact = desc.includes('win the game') ? 100 : desc.includes('infinite') || desc.includes('unlimited') ? 95 : desc.includes('each turn') || desc.includes('every turn') ? 85 : desc.includes('draw') || desc.includes('untap') ? 70 : desc.includes('damage') || desc.includes('token') ? 60 : 40;
-  const total = Math.round(effort * .35 + consistency * .30 + budget * .20 + disrupt * .10 + impact * .05);
+
+  // EFFORT — piece count + CMC weighted equally
+  const totalCMC = combo.uses?.reduce((sum, u) => sum + (u.card?.cmc || 0), 0) || 0;
+  const pieceScore = Math.max(0, Math.round(100 - ((pieces - 2) / 4) * 100));
+  const cmcScore = Math.max(0, Math.round(100 - (totalCMC / 15) * 100));
+  const effort = Math.round(pieceScore * 0.5 + cmcScore * 0.5);
+
+  // CONSISTENCY — 1-2 colors = no penalty, 3+ colors = meaningful penalty
+  const consistency = colors <= 2 ? 100 : Math.max(0, Math.round(100 - (colors - 2) * 25));
+
+  // BUDGET — revised divisor $150 for more meaningful differentiation
+  const budget = Math.max(0, Math.min(100, Math.round(100 - (totalPrice / 150) * 100)));
+
+  // DISRUPTION RESIST — inverse piece count
+  const disrupt = Math.max(0, Math.round(100 - pieces * 12));
+
+  // BOARD IMPACT — keyword classification
+  const impact = desc.includes('win the game') ? 100
+               : desc.includes('infinite') || desc.includes('unlimited') ? 95
+               : desc.includes('each turn') || desc.includes('every turn') ? 85
+               : desc.includes('draw') || desc.includes('untap') ? 70
+               : desc.includes('damage') || desc.includes('token') ? 60 : 40;
+
+  const total = Math.round(
+    effort * 0.35 + consistency * 0.30 + budget * 0.20 + disrupt * 0.10 + impact * 0.05
+  );
+
   const grade = total >= 80 ? 'S' : total >= 65 ? 'A' : total >= 45 ? 'B' : 'C';
   return { total, grade, effort, consistency, budget, disrupt, impact };
 }
@@ -225,10 +263,37 @@ function getMetrics(combo, sc, price, pieces) {
   ];
 }
 
+function trackClick(store, cardName, comboName) {
+  console.log(`[ABB Click] ${store} | ${cardName} | ${comboName} | ${new Date().toISOString()}`);
+
+  const clicks = JSON.parse(localStorage.getItem('abb_clicks') || '[]');
+  clicks.push({
+    store,
+    card: cardName,
+    combo: comboName,
+    timestamp: new Date().toISOString()
+  });
+  if (clicks.length > 500) clicks.shift();
+  localStorage.setItem('abb_clicks', JSON.stringify(clicks));
+}
+
+// Type viewABBStats() in the browser console to inspect buy-link click data.
+window.viewABBStats = function() {
+  const clicks = JSON.parse(localStorage.getItem('abb_clicks') || '[]');
+  const byStore = clicks.reduce((acc, c) => { acc[c.store] = (acc[c.store]||0)+1; return acc; }, {});
+  const byCard = clicks.reduce((acc, c) => { acc[c.card] = (acc[c.card]||0)+1; return acc; }, {});
+  console.log('=== ABB Click Stats ===');
+  console.log('By store:', byStore);
+  console.log('Top cards:', Object.entries(byCard).sort((a,b)=>b[1]-a[1]).slice(0,10));
+  console.log('Total clicks:', clicks.length);
+  return { byStore, byCard, total: clicks.length };
+};
+
 function ComboCard({ combo, prices }) {
   const [open, setOpen] = useState(false);
   const [fullOpen, setFullOpen] = useState(false);
   const cards = combo.uses?.map(u => u.card?.name).filter(Boolean) || [];
+  const comboName = cards.join(' + ') || 'Unknown Combo';
   const price = cards.reduce((s, c) => s + (prices[c] || 0), 0);
   const sc = scoreCombo(combo, price);
   const type = classifyType(combo);
@@ -249,9 +314,14 @@ function ComboCard({ combo, prices }) {
           <span className="grade-pts">{sc.total}/100</span>
         </div>
         <div className="combo-info">
-          <div className="combo-title">{cards.join(' + ') || 'Unknown Combo'}</div>
+          <div className="combo-title">{comboName}</div>
           <div className="combo-meta">
             {combo.abbVerified && <span className="meta-pill pill-abb" style={{background:'rgba(74,222,128,0.15)',color:'#4ade80',border:'1px solid rgba(74,222,128,0.35)',fontWeight:600}}>✓ ABB Verified</span>}
+            {combo.userDiscovered && (
+              <span style={{fontSize:'10px',padding:'2px 8px',borderRadius:'20px',fontWeight:'500',background:'rgba(139,92,246,0.15)',color:'#a78bfa',border:'1px solid rgba(139,92,246,0.3)'}}>
+                🔍 User Discovered
+              </span>
+            )}
             <span className="meta-pill pill-type">{type}</span>
             <span className="meta-pill pill-price">${price.toFixed(2)}</span>
             {combo.colorIdentity && <span className="meta-pill pill-color">{colorIdentityLabel(combo.colorIdentity)}</span>}
@@ -276,13 +346,13 @@ function ComboCard({ combo, prices }) {
             <div className="section-title" style={{marginTop:14}}>Buy Cards</div>
             <div className="buy-links" style={{marginBottom:14}}>
               {cards.map(c => (
-                <a key={`outpost-${c}`} className="buy-link outpost" title="Local LGS" href={`https://gameoutpost.com/search?type=product&q=${encodeURIComponent(c)}&filter.v.collection.handle=all-singles`} target="_blank" rel="noopener noreferrer">🏪 Game Outpost · {c}<span className="buy-link-sub">Local LGS</span></a>
+                <a key={`outpost-${c}`} className="buy-link outpost" title="Local LGS" href={`https://gameoutpost.com/search?type=product&q=${encodeURIComponent(c)}&filter.v.collection.handle=all-singles`} target="_blank" rel="noopener noreferrer" onClick={() => trackClick('GameOutpost', c, comboName)}>🏪 Game Outpost · {c}<span className="buy-link-sub">Local LGS</span></a>
               ))}
               {cards.map(c => (
-                <a key={`tcg-${c}`} className="buy-link tcg" href={`https://www.tcgplayer.com/search/magic/product?q=${encodeURIComponent(c)}&utm_source=alwaysbebrewin`} target="_blank" rel="noopener noreferrer">TCG · {c}</a>
+                <a key={`tcg-${c}`} className="buy-link tcg" href={`https://www.tcgplayer.com/search/magic/product?q=${encodeURIComponent(c)}&utm_source=alwaysbebrewin`} target="_blank" rel="noopener noreferrer" onClick={() => trackClick('TCGPlayer', c, comboName)}>TCG · {c}</a>
               ))}
               {cards.map(c => (
-                <a key={`ck-${c}`} className="buy-link" href={`https://www.cardkingdom.com/catalog/search?search=header&result=true&type=Names&q=${encodeURIComponent(c)}`} target="_blank" rel="noopener noreferrer">CK · {c}</a>
+                <a key={`ck-${c}`} className="buy-link" href={`https://www.cardkingdom.com/catalog/search?search=header&result=true&type=Names&q=${encodeURIComponent(c)}`} target="_blank" rel="noopener noreferrer" onClick={() => trackClick('CardKingdom', c, comboName)}>CK · {c}</a>
               ))}
             </div>
             <button onClick={() => setFullOpen(f => !f)} style={{width:'100%',padding:'9px',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:'6px',color:'var(--text2)',fontSize:'12px',fontWeight:'500',cursor:'pointer',fontFamily:'Inter,sans-serif',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}>
@@ -361,22 +431,276 @@ function ComboCard({ combo, prices }) {
 
 // ─── LOCAL ABB COMBO DATABASE ──────────────────────────────────────────────
 const ABB_COMBOS = [
-  { id:'abb-1', abbVerified:true, uses:[{card:{name:'Herd Baloth'}},{card:{name:'Ivy Lane Denizen'}}], colorIdentity:['G'], description:'Whenever a +1/+1 counter is placed on Herd Baloth, create a 4/4 Beast token. Ivy Lane Denizen puts a +1/+1 counter on Herd Baloth when each green creature enters. The Beast token triggers Denizen, which triggers Baloth — infinite Beast tokens and infinite ETB triggers.', produces:[{feature:{name:'Infinite creature tokens'}},{feature:{name:'Infinite ETB triggers'}}], upgrades:[{card:'Hardened Scales (~$1)',why:'Each counter placed counts as 2 — Baloth triggers faster and tokens enter with counters.'},{card:'Hamza, Guardian of Arashin (~$0.50)',why:'Reduces creature costs by 1 per +1/+1 counter you control. Free tokens after a few triggers.'},{card:'Ozolith (~$4)',why:'Saves your counters if Baloth gets removed — pick up where you left off next cast.'}], verdict:[{color:'green',title:'Strengths',body:'Two-card infinite with sticky green bodies — resilient to single-target removal once both resolve.'},{color:'blue',title:'Best deck for it',body:'Mono-green or Selesnya counters/tokens decks that already want ETB and +1/+1 counter payoffs.'},{color:'orange',title:'Watch out for',body:'Needs a finisher — Impact Tremors or a mill outlet turns the tokens into an actual win.'},{color:'red',title:'Skip if',body:'Your table runs heavy artifact/enchantment sweepers that can pick off Baloth before it goes off.'}] },
-  { id:'abb-2', abbVerified:true, uses:[{card:{name:'Presence of Gond'}},{card:{name:'Midnight Guard'}}], colorIdentity:['G','W'], description:'Attach Presence of Gond to Midnight Guard. Tap Midnight Guard to create a 1/1 Elf token. The Elf entering untaps Midnight Guard via its own ability. Repeat for infinite 1/1 Elf tokens and infinite ETB triggers.', produces:[{feature:{name:'Infinite creature tokens'}},{feature:{name:'Infinite ETB triggers'}}], upgrades:[{card:'Impact Tremors (~$1)',why:'Each Elf token entering deals 1 damage to each opponent. Win without attacking through any blocker.'},{card:'Altar of the Brood (~$1)',why:'Each creature entering mills opponents 1. Infinite Elves = mill everyone out instantly.'},{card:'Lightning Greaves (~$3)',why:'Gives Midnight Guard haste and shroud. Go off the turn it enters AND protect it from removal.'}], verdict:[{color:'green',title:'Strengths',body:'Two bulk-bin commons — one of the cheapest true infinites in the entire format.'},{color:'blue',title:'Best deck for it',body:'Selesnya aura or token shells that want a built-in Elf-token payoff engine.'},{color:'orange',title:'Watch out for',body:'Presence of Gond falls off if Midnight Guard dies — hold up protection before going off.'},{color:'red',title:'Skip if',body:'You don\'t run a way to punish infinite ETBs, since neither card deals damage alone.'}] },
-  { id:'abb-3', abbVerified:true, uses:[{card:{name:'Basking Broodscale'}},{card:{name:'Mazirek, Kraul Death Priest'}}], colorIdentity:['B','G'], description:'Sacrifice any permanent to trigger Mazirek, placing +1/+1 counters on each creature including Broodscale. Broodscale creates a 0/1 Eldrazi Spawn. Sacrifice the Spawn for colorless mana, triggering Mazirek again. Infinite colorless mana, infinite +1/+1 counters, infinite tokens, and infinite sacrifice triggers.', produces:[{feature:{name:'Infinite colorless mana'}},{feature:{name:'Infinite +1/+1 counters'}},{feature:{name:'Infinite creature tokens'}},{feature:{name:'Infinite ETB triggers'}}], upgrades:[{card:'Blood Artist (~$3)',why:'Each creature dying triggers drain. Infinite Spawn deaths = drain opponents to zero instantly.'},{card:'Zulaport Cutthroat (~$1)',why:'Same as Blood Artist at half the price. Run both for redundancy.'},{card:'Altar of Dementia (~$5)',why:'Sacrifice a creature to mill. Infinite sacrifices = mill all opponents out instantly.'}], verdict:[{color:'green',title:'Strengths',body:'Even without going infinite it\'s a card-neutral mana and counters engine on just 2 cards.'},{color:'blue',title:'Best deck for it',body:'Golgari sacrifice or +1/+1 counters decks that already want Blood Artist effects online.'},{color:'orange',title:'Watch out for',body:'Add a drain or mill payoff — the loop alone doesn\'t threaten lethal by itself.'},{color:'red',title:'Skip if',body:'You\'re light on sacrifice fodder, since the loop needs a permanent to feed Mazirek each cycle.'}] },
-  { id:'abb-4', abbVerified:true, uses:[{card:{name:'Filigree Sages'}},{card:{name:'Timeless Lotus'}}], colorIdentity:['W','U','B','R','G'], description:'Tap Timeless Lotus for WUBRG. Pay 2U to Filigree Sages to untap Timeless Lotus. Net gain per cycle: +WBRG. Repeat for infinite white, black, red, and green mana and infinite artifact tap/untap triggers.', produces:[{feature:{name:'Infinite colored mana'}},{feature:{name:'Infinite untap triggers'}}], upgrades:[{card:'Exsanguinate (~$2)',why:'Cast for infinite X with your infinite black mana. Drains all opponents to zero simultaneously.'},{card:'Torment of Hailfire (~$8)',why:'Same line as Exsanguinate but forces opponents to sacrifice permanents or draw and lose life.'},{card:'Lightning Greaves (~$3)',why:'Gives Filigree Sages haste and shroud. Combo the turn it enters and protect it from removal.'}], verdict:[{color:'green',title:'Strengths',body:'Produces four of five colors of mana infinitely off just two artifacts.'},{color:'blue',title:'Best deck for it',body:'Five-color or WUBRG decks that want infinite mana to fuel an X-spell finisher.'},{color:'orange',title:'Watch out for',body:'Timeless Lotus is a pricier, high-value target — protect it or hold up a second copy of the effect.'},{color:'red',title:'Skip if',body:'You\'re not running an X-spell or mana sink to actually close the game with infinite mana.'}] },
-  { id:'abb-5', abbVerified:true, uses:[{card:{name:'Taii Wakeen, Perfect Shot'}},{card:{name:'Blazing Volley'}}], colorIdentity:['R','W'], description:'Activate Taii Wakeen paying 1, tap — your damage sources deal +1 this turn. Cast Blazing Volley dealing 2 damage to each opponent creature. Each 2/2 hit for exactly its toughness triggers Taii — draw a card per creature hit. Board wipe plus mass card draw for 1R against token strategies.', produces:[{feature:{name:'Card draw'}},{feature:{name:'Creature removal'}}], verdict:[{color:'green',title:'Strengths',body:'A one-shot burst of removal and card draw for a total of 2 mana.'},{color:'blue',title:'Best deck for it',body:'Boros token-hate or go-wide punisher decks that want a cheap answer to swarms.'},{color:'orange',title:'Watch out for',body:'Only draws off 2-toughness creatures — whiffs against bigger or 1-toughness boards.'},{color:'red',title:'Skip if',body:'Your meta doesn\'t run small creature tokens, since Blazing Volley won\'t find good targets.'}] },
-  { id:'abb-7', abbVerified:true, uses:[{card:{name:'Scrawling Crawler'}},{card:{name:'Forced Fruition'}},{card:{name:'Narset, Parter of Veils'}}], colorIdentity:['U'], description:'Forced Fruition makes opponents draw 7 on each spell. Narset limits opponents to drawing 1 per turn — they discard 6 immediately. Scrawling Crawler deals 1 life per draw. Every opponent spell costs 6 cards from hand and 1 life. Hard lock that drains the table.', produces:[{feature:{name:'Soft lock'}},{feature:{name:'Life drain'}}], verdict:[{color:'green',title:'Strengths',body:'A genuine soft lock — every opponent spell costs them cards and life.'},{color:'blue',title:'Best deck for it',body:'Mono-blue stax or control decks that want to punish opponents for casting anything.'},{color:'orange',title:'Watch out for',body:'All three pieces are enchantments/planeswalkers — vulnerable to naturalize effects and edicts.'},{color:'red',title:'Skip if',body:'You\'re playing a low-interaction pod where a hard lock isn\'t a welcome effect.'}] },
-  { id:'abb-8', abbVerified:true, uses:[{card:{name:'Bloodthirsty Conqueror'}},{card:{name:'Blight-Priest of Myrkul'}}], colorIdentity:['B'], description:'Bloodthirsty Conqueror creates Vampire tokens when opponents lose life. Blight-Priest drains opponents when you gain life. Together they create a drain and token engine that scales with life swings.', produces:[{feature:{name:'Life drain'}},{feature:{name:'Creature tokens'}}], verdict:[{color:'green',title:'Strengths',body:'Self-sustaining life-swing engine that generates both drain and bodies.'},{color:'blue',title:'Best deck for it',body:'Mono-black or Orzhov aristocrats decks already leaning on life-gain/loss triggers.'},{color:'orange',title:'Watch out for',body:'Needs external life swings to get going — neither card creates one on its own.'},{color:'red',title:'Skip if',body:'You don\'t run enough life-gain or drain effects to consistently trigger the loop.'}] },
-  { id:'abb-9', abbVerified:true, uses:[{card:{name:'Electro, Assaulting Battery'}},{card:{name:'Magda, the Hoardmaster'}},{card:{name:'Soulbright Flamekin'}}], colorIdentity:['R'], description:'Activate Soulbright Flamekin 3 times targeting opponent creatures — spend 6R, gain 8R, net +2R. Each activation is a crime, triggering Magda for a Treasure token. Electro banks all red mana across turns. In a 4-player pod generates net +8R and 4 Treasures per full cycle.', produces:[{feature:{name:'Sustained mana advantage'}},{feature:{name:'Treasure tokens'}}], verdict:[{color:'green',title:'Strengths',body:'Generates a real mana and Treasure surplus in multiplayer without needing to go infinite.'},{color:'blue',title:'Best deck for it',body:'Mono-red or Dwarf-tribal decks that want ramp and card advantage from Treasures.'},{color:'orange',title:'Watch out for',body:'Needs opponent creatures to target — dries up against an empty board.'},{color:'red',title:'Skip if',body:'You\'re in a low-creature-count meta where Soulbright Flamekin has no legal targets.'}] },
-  { id:'abb-10', abbVerified:true, uses:[{card:{name:'Bramble Sovereign'}},{card:{name:'The Notary Hobbits'}}], colorIdentity:['G'], description:'Cast The Notary Hobbits — Bramble Sovereign triggers, pay 1G to create a token copy. Original Notary creates 2 Halfling tokens. Token copy creates 2 more. Total: 5 Halflings for 1G. Each Halfling taps for colorless mana equal to Halflings you control. Strong value engine though not infinite.', produces:[{feature:{name:'Creature tokens'}},{feature:{name:'Mana advantage'}}], verdict:[{color:'green',title:'Strengths',body:'Explosive one-time value — 5 bodies and a mana engine for a single green mana.'},{color:'blue',title:'Best deck for it',body:'Selesnya Halfling tribal or go-wide token decks that want to flood the board fast.'},{color:'orange',title:'Watch out for',body:'It\'s not infinite — a board wipe answers the whole engine at once.'},{color:'red',title:'Skip if',body:'You already have enough token generation and don\'t need more go-wide pieces.'}] },
-  { id:'abb-11', abbVerified:true, uses:[{card:{name:'Chatterfang, Squirrel General'}},{card:{name:'Squirrel Nest'}},{card:{name:'Earthcraft'}},{card:{name:'Black Market'}}], colorIdentity:['B','G'], description:'Earthcraft lets you tap a basic land to untap a creature. Squirrel Nest taps a land to make a Squirrel. Chatterfang doubles all tokens. Tap land for Squirrel, Chatterfang makes 2, tap one to untap land via Earthcraft, repeat. Black Market generates mana from deaths.', produces:[{feature:{name:'Infinite creature tokens'}},{feature:{name:'Infinite mana'}}], verdict:[{color:'green',title:'Strengths',body:'Combines infinite tokens with infinite mana — extremely hard to interact with once online.'},{color:'blue',title:'Best deck for it',body:'Golgari squirrel-tribal or token-doubling decks that want a true lock-out finisher.'},{color:'orange',title:'Watch out for',body:'Four pieces means more removal windows before you assemble the full loop.'},{color:'red',title:'Skip if',body:'Your playgroup treats 4-card combos as too durdly for the pod\'s power level.'}] },
-  { id:'abb-12', abbVerified:true, uses:[{card:{name:'Mind Over Matter'}},{card:{name:'Otherworldly Atlas'}},{card:{name:'Scrawling Crawler'}}], colorIdentity:['U'], description:'Tap Otherworldly Atlas (2+ counters) to draw cards for each player. Discard a card to Mind Over Matter to untap Atlas. Net +1 card per cycle. Scrawling Crawler deals 1 life to each opponent per draw. Loop until opponents are drained or decked.', produces:[{feature:{name:'Card draw'}},{feature:{name:'Life drain'}}], verdict:[{color:'green',title:'Strengths',body:'Draws the whole table while draining every opponent — a genuine alternate win con.'},{color:'blue',title:'Best deck for it',body:'Mono-blue or Dimir wheel/group-draw decks that already want Otherworldly Atlas online.'},{color:'orange',title:'Watch out for',body:'Otherworldly Atlas needs 2+ counters before the loop even starts — set it up first.'},{color:'red',title:'Skip if',body:'You don\'t want to give opponents cards too, since Atlas draws for every player.'}] },
-  { id:'abb-13', abbVerified:true, uses:[{card:{name:'Skullclamp'}},{card:{name:'Memnite'}},{card:{name:'Koll, the Forgemaster'}},{card:{name:'Bladehold War-Whip'}}], colorIdentity:['R','W'], description:'Equip Skullclamp to Memnite — it becomes 2/0 and dies immediately, drawing 2 cards. Koll, the Forgemaster returns the equipped Memnite to your hand for free the instant it dies, while Skullclamp itself stays on the battlefield, unattached. Bladehold War-Whip reduces the equip cost of your other Equipment by 1, dropping Skullclamp\'s equip cost to 0 — so recasting Memnite for 0 and re-equipping Skullclamp for 0 is a completely free loop that draws your entire library.', produces:[{feature:{name:'Infinite card draw'}}], verdict:[{color:'green',title:'Strengths',body:'A completely free loop once assembled — draws your whole deck for zero mana per cycle.'},{color:'blue',title:'Best deck for it',body:'Boros equipment or aristocrats decks that already run Skullclamp as a draw engine.'},{color:'orange',title:'Watch out for',body:'Koll only returns nontoken creatures, so it must be Memnite specifically — a token stand-in won\'t work.'},{color:'red',title:'Skip if',body:'You don\'t already run Skullclamp, since it\'s the one piece doing the actual card-draw work.'}] },
-  { id:'abb-14', abbVerified:true, uses:[{card:{name:'Crackdown Construct'}},{card:{name:'Lightning Greaves'}},{card:{name:'Ornithopter'}}], colorIdentity:[], description:'Equip Lightning Greaves — equip cost {0} — to any creature. Because equipping is an activated ability of an artifact (not a mana ability), it triggers Crackdown Construct for +1/+1 until end of turn no matter which creature the Greaves are attached to. Re-equip it again and again for free, pumping Construct into a lethal attacker in a single turn, then move the Greaves onto Construct itself before swinging for haste and shroud. Ornithopter is a second 0-cost artifact body to hold the Greaves on as a backup if Construct gets removed.', produces:[{feature:{name:'Repeatable pump'}},{feature:{name:'Lethal damage'}}], verdict:[{color:'green',title:'Strengths',body:'Turns a 0-mana equip ability into unlimited free pump for a one-turn kill.'},{color:'blue',title:'Best deck for it',body:'Mono-colorless or artifact aggro decks that want a cheap, resilient finisher.'},{color:'orange',title:'Watch out for',body:'Crackdown Construct\'s pump is only until end of turn — you must swing the same turn you build it.'},{color:'red',title:'Skip if',body:'You lack evasion for Construct, since a ground stall lets opponents just chump block the kill.'}] },
-  { id:'abb-15', abbVerified:true, uses:[{card:{name:"Hawkeye's Bow"}},{card:{name:"Pemmin's Aura"}},{card:{name:'Birds of Paradise'}}], colorIdentity:['G','U','R'], description:"Equip Hawkeye's Bow to Birds of Paradise, then enchant Birds with Pemmin's Aura. Tap Birds for {U} — Hawkeye's Bow triggers for 1 damage to each opponent since Birds just became tapped, and that same {U} pays Pemmin's Aura's untap ability to untap Birds again. Net mana cost per cycle is zero, so it's a true infinite loop that puts every opponent to zero life. Comes online as early as Turn 4 off a Forest/Mountain/Island/Island curve — Birds Turn 1, Bow cast and equipped Turn 2, Pemmin's Aura Turn 4 once you have double blue.", produces:[{feature:{name:'Infinite damage to each opponent'}},{feature:{name:'Win the game'}}], upgrades:[{card:'Freed from the Real (~$1)',why:"Replaces Pemmin's Aura at a fraction of the price with the same {U}: untap ability. Run both for redundancy."},{card:'Seeker of Skybreak (~$2)',why:"Untaps itself for free — swap it in and you don't need Birds or Pemmin's Aura at all. It's the real 2-card version that got it Pauper-banned alongside Hawkeye's Bow."},{card:'Sol Ring (~$2)',why:"Extra colorless mana deploys your pieces a turn faster, though you still need a dedicated red source for the Bow and double blue for Pemmin's Aura."}], verdict:[{color:'green',title:'Strengths',body:'A genuine infinite damage loop at zero net mana cost once assembled — kills the whole table at once.'},{color:'blue',title:'Best deck for it',body:'Temur ramp or ping decks that already run Birds of Paradise as an early mana dork.'},{color:'orange',title:'Watch out for',body:"Three pieces across three colors means more removal windows — Birds dying before Pemmin's Aura resolves sets you back a turn."},{color:'red',title:'Skip if',body:"You don't want to run three specific colors just for one combo — Seeker of Skybreak alone is a leaner, cheaper alternative."}] },
-  { id:'abb-22', abbVerified:true, uses:[{card:{name:'Herd Baloth'}},{card:{name:'Ivy Lane Denizen'}},{card:{name:'Impact Tremors'}}], colorIdentity:['R','G'], description:'Ivy Lane Denizen puts a +1/+1 counter on Herd Baloth when each green creature enters. Herd Baloth creates a 4/4 Beast token when a counter is placed on it — triggering Denizen again. Each Beast token entering deals 1 damage to each opponent via Impact Tremors. Infinite Beast tokens plus infinite damage to all opponents simultaneously — win without attacking or needing combat. Gruul version of the base mono-green combo.', produces:[{feature:{name:'Win the game'}},{feature:{name:'Infinite creature tokens'}},{feature:{name:'Infinite damage to each opponent'}}], upgrades:[{card:'Purphoros, God of the Forge (~$12)',why:'2 damage per creature entering instead of 1. Indestructible God is harder to remove than Impact Tremors enchantment.'},{card:'Warstorm Surge (~$2)',why:'Each creature entering deals damage equal to its power. 4/4 Beasts deal 4 each — kills in far fewer tokens than Impact Tremors.'},{card:'Parallel Lives (~$15)',why:'Doubles all tokens created. Every Beast token triggers Denizen twice — loop accelerates exponentially.'}] },
+  {
+    id: 1,
+    uses: [{card:{name:'Herd Baloth',cmc:5}},{card:{name:'Ivy Lane Denizen',cmc:4}}],
+    colorIdentity: ['G'],
+    description: 'Ivy Lane Denizen puts a +1/+1 counter on Herd Baloth when each green creature enters. Herd Baloth creates a 4/4 Beast token when a counter is placed on it. The Beast token is green, triggering Denizen again. Infinite 4/4 Beast tokens and infinite ETB triggers.',
+    produces: [{feature:{name:'Infinite creature tokens'}},{feature:{name:'Infinite ETB triggers'}}],
+    upgrades: [
+      {card:'Hardened Scales (~$1)', why:'Each counter placed counts as 2 — Baloth triggers faster and tokens enter with counters.'},
+      {card:'Ozolith (~$4)', why:'Saves your counters if Baloth gets removed — pick up where you left off next cast.'},
+      {card:'Hamza, Guardian of Arashin (~$0.50)', why:'Reduces creature costs by 1 per +1/+1 counter you control. Free tokens after a few triggers.'}
+    ]
+  },
+  {
+    id: 2,
+    uses: [{card:{name:'Presence of Gond',cmc:2}},{card:{name:'Midnight Guard',cmc:3}}],
+    colorIdentity: ['G','W'],
+    description: 'Attach Presence of Gond to Midnight Guard. Tap Midnight Guard to create a 1/1 Elf token. The Elf entering untaps Midnight Guard via its triggered ability. Infinite 1/1 Elf tokens and infinite ETBs.',
+    produces: [{feature:{name:'Infinite creature tokens'}},{feature:{name:'Infinite ETB triggers'}}],
+    upgrades: [
+      {card:'Impact Tremors (~$1)', why:'Each Elf token entering deals 1 damage to each opponent. Win without attacking.'},
+      {card:'Altar of the Brood (~$1)', why:'Each creature entering mills opponents 1 card. Infinite Elves = mill everyone instantly.'},
+      {card:'Lightning Greaves (~$3)', why:'Gives Midnight Guard haste and shroud. Go off the turn it enters AND protect it.'}
+    ]
+  },
+  {
+    id: 3,
+    uses: [{card:{name:'Basking Broodscale',cmc:2}},{card:{name:'Mazirek, Kraul Death Priest',cmc:5}}],
+    colorIdentity: ['B','G'],
+    description: 'Sacrifice any permanent to trigger Mazirek — +1/+1 counter on each creature including Broodscale. Broodscale creates a 0/1 Eldrazi Spawn token. Sacrifice the Spawn for colorless mana, triggering Mazirek again. Infinite colorless mana, infinite +1/+1 counters, infinite tokens, infinite ETBs, infinite death triggers, infinite sacrifice triggers.',
+    produces: [{feature:{name:'Infinite colorless mana'}},{feature:{name:'Infinite +1/+1 counters'}},{feature:{name:'Infinite creature tokens'}}],
+    upgrades: [
+      {card:'Blood Artist (~$3)', why:'Each creature dying triggers drain. Infinite Spawn deaths = drain opponents to zero instantly.'},
+      {card:'Zulaport Cutthroat (~$1)', why:'Same as Blood Artist at half the price. Run both for redundancy.'},
+      {card:'Altar of Dementia (~$5)', why:'Sacrifice a creature to mill. Infinite sacrifices = mill all opponents out instantly.'}
+    ]
+  },
+  {
+    id: 4,
+    uses: [{card:{name:'Filigree Sages',cmc:4}},{card:{name:'Timeless Lotus',cmc:5}}],
+    colorIdentity: ['W','U','B','R','G'],
+    description: 'Tap Timeless Lotus for WUBRG. Pay {2}{U} to Filigree Sages to untap Timeless Lotus. Net gain per cycle: +WBRG. The U is consumed by Sages but W, B, R, G accumulate. Zero prerequisites. Self-funding loop. Note: No infinite blue mana — U is consumed each cycle.',
+    produces: [{feature:{name:'Infinite colored mana'}},{feature:{name:'Infinite untap triggers'}}],
+    upgrades: [
+      {card:'Exsanguinate (~$2)', why:'Cast for infinite X with your infinite black mana. Drains all opponents to zero simultaneously.'},
+      {card:'Lightning Greaves (~$3)', why:'Gives Filigree Sages haste and shroud. Combo the turn it enters and protect it from removal.'},
+      {card:'Strionic Resonator (~$2)', why:'Copy the untap trigger. With two untap triggers per activation you can untap multiple artifacts simultaneously.'}
+    ]
+  },
+  {
+    id: 5,
+    uses: [{card:{name:'Taii Wakeen, Perfect Shot',cmc:2}},{card:{name:'Blazing Volley',cmc:1}}],
+    colorIdentity: ['R','W'],
+    description: 'Activate Taii Wakeen — your damage sources deal +1 this turn. Cast Blazing Volley dealing 2 damage to each opponent creature. Each 2/2 hit for exactly its toughness triggers Taii — draw a card per creature hit. Online by turn 3 with zero ramp. Scales freely — the more tokens opponents make, the more cards you draw for the same cost.',
+    produces: [{feature:{name:'Card draw engine'}},{feature:{name:'Creature removal'}}],
+    upgrades: [
+      {card:'Revel in Riches (~$2)', why:'Triggers per creature death — not per event. Each 2/2 token killed nets one Treasure.'},
+      {card:'Deflecting Palm (~$2)', why:'Instant-speed redirect for combat damage. Protects against being attacked back.'},
+      {card:'Zirda the Dawnwaker (~$3)', why:'Reduces Taii\'s activation cost. More triggers per turn cycle.'}
+    ]
+  },
+  {
+    id: 6,
+    uses: [{card:{name:'Radagast of Rhosgobel',cmc:4}},{card:{name:'Psychosis Crawler',cmc:5}}],
+    colorIdentity: ['G'],
+    description: 'Radagast makes your first creature each turn cost {2} less with flash. ETB draw engines trigger on each free creature. Psychosis Crawler deals 1 life loss to each opponent per draw. Net ~12 life drained per full turn cycle in 4-player pod. Scales exponentially as board grows.',
+    produces: [{feature:{name:'Sustained damage'}},{feature:{name:'Card draw engine'}}],
+    upgrades: [
+      {card:'Garruk\'s Uprising (~$0.50)', why:'Draw a card whenever a creature with power 4+ enters. Free with Radagast\'s cost reduction.'},
+      {card:'Guardian Project (~$3)', why:'Draw a card whenever a nontoken creature with a new name enters. Powerful card advantage engine with Radagast.'},
+      {card:'Beast Whisperer (~$2)', why:'Draw a card whenever you cast a creature spell. Stacks with Radagast\'s free cast.'}
+    ]
+  },
+  {
+    id: 7,
+    uses: [{card:{name:'Scrawling Crawler',cmc:3}},{card:{name:'Forced Fruition',cmc:6}},{card:{name:'Narset, Parter of Veils',cmc:3}}],
+    colorIdentity: ['U'],
+    description: 'Forced Fruition makes opponents draw 7 on each spell. Narset limits opponents to drawing 1 per turn — they discard 6 immediately. Scrawling Crawler drains 1 life per opponent draw. Every opponent spell costs 6 cards from hand and 1 life. Hard lock that empties hands and drains the table.',
+    produces: [{feature:{name:'Hard lock'}},{feature:{name:'Life drain'}}],
+    upgrades: [
+      {card:'Notion Thief (~$4)', why:'You draw instead of opponents when they would draw. Combines with Forced Fruition for massive hand advantage.'},
+      {card:'Alhammarret\'s Archive (~$8)', why:'You draw double. Each Forced Fruition trigger draws you 14 instead of 7.'}
+    ]
+  },
+  {
+    id: 8,
+    uses: [{card:{name:'Crackdown Construct',cmc:4}},{card:{name:'Lightning Greaves',cmc:2}},{card:{name:'Ornithopter',cmc:0}}],
+    colorIdentity: [],
+    description: 'Equip Lightning Greaves between Crackdown Construct and Ornithopter (or any 0-cost artifact creature). Each {0} equip activation triggers Construct — gets +1/+1 until end of turn. Repeat infinitely. Construct becomes arbitrarily large. Attack for lethal. With Mountain + Sol Ring on T1, kills one opponent on Turn 2.',
+    produces: [{feature:{name:'Infinite power creature'}},{feature:{name:'Win the game'}}],
+    upgrades: [
+      {card:'Chandra\'s Ignition (~$2)', why:'Deal damage equal to Construct\'s power to ALL opponents and ALL creatures simultaneously. Table wipe on one spell.'},
+      {card:'Grappling Hook (~$1)', why:'Must be blocked by two or more creatures. Forces multiple blockers or goes unblocked.'},
+      {card:'Mana Vault (~$30)', why:'Enables T2 kill more consistently without Sol Ring dependency.'}
+    ]
+  },
+  {
+    id: 9,
+    uses: [{card:{name:'Mind Over Matter',cmc:6}},{card:{name:'Otherworldly Atlas',cmc:3}},{card:{name:'Scrawling Crawler',cmc:3}}],
+    colorIdentity: ['U'],
+    description: 'Tap Otherworldly Atlas (2+ charge counters) to draw cards for each player. Discard a card to Mind Over Matter to untap Atlas. Net +1 card per cycle. Scrawling Crawler deals 1 life to each opponent per draw. Loop until opponents drained or you draw your entire deck.',
+    produces: [{feature:{name:'Infinite card draw'}},{feature:{name:'Life drain'}}],
+    upgrades: [
+      {card:'Thassa\'s Oracle (~$15)', why:'Win immediately after drawing your library. ETB wins on the spot with empty library.'},
+      {card:'Freed from the Real (~$1)', why:'Alternative untapper — pay {U} to untap Atlas instead of discarding. Preserves hand.'}
+    ]
+  },
+  {
+    id: 10,
+    uses: [{card:{name:'Bloodthirsty Conqueror',cmc:4}},{card:{name:'Blight-Priest of Myrkul',cmc:3}}],
+    colorIdentity: ['B'],
+    description: 'Bloodthirsty Conqueror creates Vampire tokens when opponents lose life. Blight-Priest drains opponents when you gain life. Together create a drain and token engine that scales with life swings.',
+    produces: [{feature:{name:'Life drain'}},{feature:{name:'Creature tokens'}}],
+    upgrades: [
+      {card:'Sanguine Bond (~$3)', why:'Whenever you gain life, opponent loses that much life. Doubles the drain loop.'},
+      {card:'Exquisite Blood (~$10)', why:'Whenever an opponent loses life, you gain that much. Creates a second self-reinforcing loop.'}
+    ]
+  },
+  {
+    id: 11,
+    uses: [{card:{name:'Bramble Sovereign',cmc:4}},{card:{name:'The Notary Hobbits',cmc:4}}],
+    colorIdentity: ['G'],
+    description: 'Cast The Notary Hobbits — Bramble Sovereign triggers ONCE (nontoken creature ETB only). Pay {1}{G} → create one token copy. Original Notary ETB creates 2 Halfling tokens. Token copy ETB creates 2 more. Total: 5 Halflings on board for {1}{G}. RULES NOTE: Tokens do NOT re-trigger Bramble Sovereign — the cascade loop does not exist.',
+    produces: [{feature:{name:'Token engine'}},{feature:{name:'Mana advantage'}}],
+    upgrades: [
+      {card:'Conjurer\'s Closet (~$2)', why:'Flicker Notary at end of turn — returns as a nontoken, triggering Bramble again each turn.'},
+      {card:'Parallel Lives (~$15)', why:'Doubles all tokens created. Each Notary entry produces 4 Halflings instead of 2.'}
+    ]
+  },
+  {
+    id: 12,
+    uses: [{card:{name:'Memnite',cmc:0}},{card:{name:'Bladehold War-Whip',cmc:3}},{card:{name:'Koll, the Forgemaster',cmc:2}},{card:{name:'Skullclamp',cmc:1}}],
+    colorIdentity: ['R','W'],
+    description: 'Bladehold War-Whip reduces Skullclamp\'s equip cost from {1} to {0}. Equip Skullclamp to Memnite (free) → Memnite becomes 2/0, dies immediately. Skullclamp triggers → draw 2. Koll triggers → Memnite (equipped nontoken) returns to hand. Recast Memnite free → equip free → repeat. Draw entire library for zero mana per cycle. Fun factor: very high.',
+    produces: [{feature:{name:'Draw entire library'}},{feature:{name:'Infinite card draw'}}],
+    upgrades: [
+      {card:'Impact Tremors (~$1)', why:'Memnite entering each cycle deals 1 damage to each opponent. Draw your deck AND drain simultaneously.'},
+      {card:'Aetherflux Reservoir (~$8)', why:'Gain life per spell cast. Cast Memnite 40 times, spend 50 life to deal 50 damage. One-shot any opponent.'},
+      {card:'Open the Armory (~$1)', why:'Tutor any equipment or aura to hand. Finds Skullclamp or Bladehold War-Whip as needed.'}
+    ]
+  },
+  {
+    id: 13,
+    uses: [{card:{name:'Hawkeye\'s Bow',cmc:1}},{card:{name:'Pemmin\'s Aura',cmc:3}},{card:{name:'Birds of Paradise',cmc:1}}],
+    colorIdentity: ['G','U','R'],
+    description: 'Equip Hawkeye\'s Bow to Birds of Paradise. Enchant Birds with Pemmin\'s Aura. Tap Birds — Bow deals 1 damage to each opponent and Birds produces {U}. Pay {U} to Pemmin\'s Aura to untap Birds. Zero net mana cost per cycle. Kills all opponents simultaneously. T3 kill with Forest T1 + Island T2. Note: Birds of Paradise can only be removed by creature removal — better disruption resistance than artifact creatures which face both creature AND artifact removal.',
+    produces: [{feature:{name:'Infinite damage to each opponent'}},{feature:{name:'Win the game'}}],
+    upgrades: [
+      {card:'Freed from the Real (~$1)', why:'Replaces Pemmin\'s Aura at 1/5th the price. Same {U} untap cost. Run both for redundancy.'},
+      {card:'Seeker of Skybreak (~$2)', why:'Got Pauper-banned alongside Hawkeye\'s Bow. Taps to untap any creature — green option without blue mana.'},
+      {card:'Sol Ring (~$2)', why:'Enables T2 kill. With Sol Ring T1 you can cast and equip the Bow T1, then Pemmin\'s T2.'}
+    ]
+  },
+  {
+    id: 14,
+    uses: [{card:{name:'Silver Myr',cmc:2}},{card:{name:"Hawkeye's Bow",cmc:1}},{card:{name:'Freed from the Real',cmc:3}}],
+    colorIdentity: ['U'],
+    description: 'Equip Hawkeye\'s Bow to Silver Myr. Enchant Silver Myr with Freed from the Real. Tap Silver Myr — Bow deals 1 damage to each opponent and Silver Myr produces {U}. Pay {U} to Freed from the Real to untap Silver Myr. Zero net mana cost per cycle. Kills all opponents simultaneously. T3 kill without Sol Ring. Note: Silver Myr is vulnerable to both creature AND artifact removal — more removal vectors than the Birds of Paradise version.',
+    produces: [{feature:{name:'Infinite damage to each opponent'}},{feature:{name:'Win the game'}}],
+    upgrades: [
+      {card:'Pemmin\'s Aura (~$5)', why:'Backup untapper with additional utility — also gives Silver Myr +1/-1, flying, or shroud.'},
+      {card:'Seeker of Skybreak (~$2)', why:'Third untapper option. Taps to untap any creature.'},
+      {card:'Sol Ring (~$2)', why:'Enables T2 kill instead of T3 with fast mana acceleration.'}
+    ]
+  },
+  {
+    id: 15,
+    uses: [{card:{name:'Herd Baloth',cmc:5}},{card:{name:'Ivy Lane Denizen',cmc:4}},{card:{name:'Altar of the Brood',cmc:1}}],
+    colorIdentity: ['G'],
+    description: 'Ivy Lane Denizen puts a +1/+1 counter on Herd Baloth when each green creature enters. Herd Baloth creates a 4/4 Beast token — triggering Denizen again. Each creature entering mills each opponent 1 card via Altar of the Brood. Infinite Beast tokens plus mill entire libraries. Wins without attacking. Stays mono-green — colorless Altar preserves identity.',
+    produces: [{feature:{name:'Infinite creature tokens'}},{feature:{name:'Infinite mill'}}],
+    upgrades: [
+      {card:'Parallel Lives (~$15)', why:'Doubles all tokens. Every Beast triggers Denizen twice — loop accelerates exponentially.'},
+      {card:'Primal Vigor (~$8)', why:'Budget Parallel Lives. Doubles tokens and +1/+1 counters — both relevant to this combo.'},
+      {card:'Altar of Dementia (~$5)', why:'Second mill outlet. Sacrifice tokens to mill — adds redundancy.'}
+    ]
+  },
+  {
+    id: 16,
+    uses: [{card:{name:'Herd Baloth',cmc:5}},{card:{name:'Ivy Lane Denizen',cmc:4}},{card:{name:'Impact Tremors',cmc:2}}],
+    colorIdentity: ['R','G'],
+    description: 'Ivy Lane Denizen puts a +1/+1 counter on Herd Baloth when each green creature enters. Herd Baloth creates a 4/4 Beast token — triggering Denizen again. Each Beast token entering deals 1 damage to each opponent via Impact Tremors. Infinite Beast tokens plus infinite damage to all opponents simultaneously. Wins without attacking. Note: adding red drops this from mono-green S tier to A tier — the color penalty is significant.',
+    produces: [{feature:{name:'Win the game'}},{feature:{name:'Infinite creature tokens'}},{feature:{name:'Infinite damage to each opponent'}}],
+    upgrades: [
+      {card:'Purphoros, God of the Forge (~$12)', why:'2 damage per creature entering instead of 1. Indestructible God is harder to remove than Impact Tremors.'},
+      {card:'Warstorm Surge (~$2)', why:'Each creature deals damage equal to its power on entry. 4/4 Beasts deal 4 each — far fewer tokens needed to win.'},
+      {card:'Parallel Lives (~$15)', why:'Doubles all tokens. Each Beast triggers Denizen twice — kills in half the time.'}
+    ]
+  },
+  {
+    id: 17,
+    uses: [{card:{name:'Aquamoeba',cmc:2}},{card:{name:'Drake Haven',cmc:3}},{card:{name:'Skullclamp',cmc:1}},{card:{name:"Ashnod's Altar",cmc:3}}],
+    colorIdentity: ['U'],
+    description: 'Discard a card to Aquamoeba (free). Drake Haven triggers — pay {1} to create a 2/2 Drake token. Equip Skullclamp to the Drake for {1} — Drake becomes 3/1 and survives (intentional — 2/2 survives the clamp unlike 1/1s). Sacrifice the Drake to Ashnod\'s Altar for {2} colorless. Skullclamp triggers — draw 2 cards. Net mana cost per cycle: zero. Repeat to draw entire library. Full control over draw speed.',
+    produces: [{feature:{name:'Infinite card draw'}},{feature:{name:'Draw entire library'}}],
+    upgrades: [
+      {card:"Thassa's Oracle (~$15)", why:'Cast after drawing your library for an immediate win. ETB wins on the spot with empty library.'},
+      {card:'Thought Vessel (~$3)', why:'No maximum hand size. Draw your whole deck without discarding to 7 at end of turn.'},
+      {card:"Jace, Wielder of Mysteries (~$5)", why:'Draw a card while library is empty to win the game. Budget Thassa\'s Oracle alternative.'}
+    ]
+  },
+  {
+    id: 18,
+    uses: [{card:{name:'Shorikai, Genesis Engine',cmc:5}},{card:{name:'Palladium Myr',cmc:3}},{card:{name:'Intruder Alarm',cmc:3}}],
+    colorIdentity: ['W','U'],
+    description: 'Shorikai must be crewed first — needs a creature with power 2+, the 1/1 Pilots it creates cannot crew it. Tap Palladium Myr for {2}. Pay {1} to activate Shorikai — draw 2, discard 1, create a 1/1 Pilot token. Pilot enters — Intruder Alarm untaps ALL creatures. Repeat. Net +1 colorless per cycle. Infinite draw, infinite colorless mana, infinite 1/1 Pilot tokens simultaneously.',
+    produces: [{feature:{name:'Infinite card draw'}},{feature:{name:'Infinite colorless mana'}},{feature:{name:'Infinite creature tokens'}}],
+    upgrades: [
+      {card:"Thassa's Oracle (~$15)", why:'Win immediately after drawing your library with empty library ETB trigger.'},
+      {card:'Walking Ballista (~$8)', why:'Cast for infinite X with infinite colorless mana. Deals infinite damage to opponents one at a time.'},
+      {card:'Dramatic Reversal + Isochron Scepter (~$8 total)', why:'Alternative infinite mana engine that does not require Intruder Alarm at $20.'}
+    ]
+  },
+  {
+    id: 19,
+    uses: [{card:{name:"Hawkeye's Bow",cmc:1}},{card:{name:"Pemmin's Aura",cmc:3}},{card:{name:'Birds of Paradise',cmc:1}},{card:{name:'Fateful Discovery',cmc:5}},{card:{name:'The Locust God',cmc:6}},{card:{name:'Donatello, the Brains',cmc:3}}],
+    colorIdentity: ['U','R'],
+    userDiscovered: true,
+    description: 'Draw a card — The Locust God creates a 1/1 Insect token with flying and haste. Donatello\'s replacement effect triggers — Insect token PLUS a Mutagen token are created instead. Mutagen token is a colorless artifact — enters the battlefield — Fateful Discovery triggers — draw a card. Repeat infinitely. Infinite draw, infinite Insect tokens, infinite Mutagen tokens. First documented combo using Donatello + Fateful Discovery — discovered by Always Be Brewin.',
+    produces: [{feature:{name:'Win the game'}},{feature:{name:'Infinite card draw'}},{feature:{name:'Infinite creature tokens'}}],
+    upgrades: [
+      {card:"Thassa's Oracle (~$15)", why:'Cast after drawing your library. ETB wins immediately with empty library.'},
+      {card:"Laboratory Maniac (~$2)", why:'Budget Thassa\'s Oracle. Draw a card with empty library to win.'},
+      {card:'Smothering Tithe (~$12)', why:'Each opponent draw during Forced Fruition triggers a Treasure. Generates mana to protect the combo with countermagic.'}
+    ]
+  }
 ];
+
+// Beta access gate
+const BETA_CODE = 'ABB2026';
+const betaKey = 'abb_beta_access';
+
+function BetaGate({ onUnlock }) {
+  const [input, setInput] = useState('');
+  const [error, setError] = useState(false);
+
+  function tryUnlock() {
+    if (input.trim().toUpperCase() === BETA_CODE) {
+      localStorage.setItem(betaKey, 'true');
+      onUnlock();
+    } else {
+      setError(true);
+      setTimeout(() => setError(false), 2000);
+    }
+  }
+
+  return (
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)',padding:'20px'}}>
+      <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'12px',padding:'40px',maxWidth:'380px',width:'100%',textAlign:'center'}}>
+        <div style={{fontSize:'32px',marginBottom:'12px'}}>🍺</div>
+        <div style={{fontSize:'20px',fontWeight:'700',color:'var(--green)',marginBottom:'6px'}}>Always Be Brewin</div>
+        <div style={{fontSize:'13px',color:'var(--text2)',marginBottom:'24px'}}>Beta Access — Enter your code to continue</div>
+        <input
+          style={{width:'100%',padding:'12px',background:'var(--surface2)',border:`1px solid ${error ? 'var(--red)' : 'var(--border)'}`,borderRadius:'8px',color:'var(--text)',fontSize:'16px',textAlign:'center',letterSpacing:'4px',textTransform:'uppercase',outline:'none',marginBottom:'12px',fontFamily:'Inter,sans-serif'}}
+          placeholder='ENTER CODE'
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && tryUnlock()}
+        />
+        {error && <div style={{color:'var(--red)',fontSize:'12px',marginBottom:'12px'}}>Invalid code. Try again.</div>}
+        <button
+          onClick={tryUnlock}
+          style={{width:'100%',padding:'12px',background:'var(--green)',color:'#0a1a0f',fontWeight:'700',fontSize:'14px',border:'none',borderRadius:'8px',cursor:'pointer',fontFamily:'Inter,sans-serif'}}
+        >
+          Enter Beta
+        </button>
+        <div style={{fontSize:'11px',color:'var(--text2)',marginTop:'16px'}}>DM @alwaysbebrewin on Instagram for access</div>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   const [tab, setTab] = useState('finder');
@@ -419,10 +743,10 @@ function App() {
         })
       );
 
-      const liveQuery = filledCards.map(c => `card:"${c}"`).join(' ');
+      const cardsParam = filledCards.join('|');
       let liveResults = [];
       try {
-        const r = await fetch(`/.netlify/functions/spellbook?q=${encodeURIComponent(liveQuery)}`);
+        const r = await fetch(`/.netlify/functions/spellbook?cards=${encodeURIComponent(cardsParam)}`);
         if (r.ok) {
           const data = await r.json();
           liveResults = data.results || data.variants || [];
@@ -520,8 +844,8 @@ function App() {
             <div className="section-title">Score Axes</div>
             <div className="about-grid" style={{marginBottom:24}}>
               {[
-                ['Effort (35%)','Fewer pieces = higher score. 2-card combos score near-perfect.'],
-                ['Consistency (30%)','Mono-color scores highest. Each extra color costs 12 points.'],
+                ['Effort (35%)','Piece count and total mana cost weighted equally. Cheap 2-card combos score near-perfect.'],
+                ['Consistency (30%)','1-2 colors score perfect. Each color beyond that costs 25 points.'],
                 ['Budget (20%)','Live prices from Scryfall. $1 combos score near-perfect.'],
                 ['Disruption Resist (10%)','Fewer pieces = fewer removal targets. 2-card combos win.'],
                 ['Board Impact (5%)','Infinite = 95. Sustained advantage = 85. Burst = 70.'],
@@ -542,7 +866,23 @@ function App() {
   );
 }
 
-ReactDOM.render(<App />, document.getElementById('root'));
+function Root() {
+  const [unlocked, setUnlocked] = useState(
+    localStorage.getItem(betaKey) === 'true'
+  );
+  if (!unlocked) return <BetaGate onUnlock={() => setUnlocked(true)} />;
+  return <App />;
+}
+
+ReactDOM.render(<Root />, document.getElementById('root'));
 </script>
+<div class="visitor-badge" id="visitor-count">👁 Loading...</div>
+<script>
+  fetch('https://alwaysbebrewin.goatcounter.com/counter/TOTAL.json')
+    .then(r => r.json())
+    .then(d => { document.getElementById('visitor-count').textContent = '👁 ' + (d.count || '—') + ' visitors'; })
+    .catch(() => { document.getElementById('visitor-count').textContent = '🍺 Always Be Brewin'; });
+</script>
+<script data-goatcounter="https://alwaysbebrewin.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
