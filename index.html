@@ -673,6 +673,18 @@ const ABB_COMBOS = [
       {card:"Laboratory Maniac (~$2)", why:'Budget Thassa\'s Oracle. Draw a card with empty library to win.'},
       {card:'Smothering Tithe (~$12)', why:'Each opponent draw during Forced Fruition triggers a Treasure. Generates mana to protect the combo with countermagic.'}
     ]
+  },
+  {
+    id: 20,
+    uses: [{card:{name:'Electro, Assaulting Battery',cmc:3}},{card:{name:'Magda, the Hoardmaster',cmc:3}},{card:{name:'Soulbright Flamekin',cmc:2}}],
+    colorIdentity: ['R'],
+    description: 'Activate Soulbright Flamekin 3 times targeting opponent creatures — spend 6R total, gain 8R on the third activation, net +2R. Each activation is a crime, triggering Magda for a Treasure token. Electro banks all red mana across turns. In a 4-player pod generates net +8R and 4 Treasures per full turn cycle. Note: Soulbright generates 8R ONLY on the third activation — not 4th, 5th, or beyond.',
+    produces: [{feature:{name:'Sustained mana advantage'}},{feature:{name:'Treasure tokens'}}],
+    upgrades: [
+      {card:'Jeska\'s Will (~$8)', why:'Massive red mana burst in one spell. Combines with Electro banking to accelerate the engine dramatically.'},
+      {card:'Reckless Handling (~$1)', why:'Tutor any artifact to hand. Finds Electro or any missing piece instantly.'},
+      {card:'Treasure Map (~$2)', why:'Generates Treasures passively. More Treasures entering triggers more Magda activations.'}
+    ]
   }
 ];
 
