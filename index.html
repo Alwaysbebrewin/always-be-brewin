@@ -46,6 +46,15 @@
     .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
     .filter-btn { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text2); transition: all .15s; font-family: 'Inter', sans-serif; }
     .filter-btn:hover, .filter-btn.active { border-color: var(--green); color: var(--green); background: rgba(74,222,128,.08); }
+    .color-filters { align-items: center; }
+    .color-pip { width: 30px; height: 30px; padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; cursor: pointer; border: 2px solid var(--border); opacity: .5; transition: all .15s; font-family: 'Inter', sans-serif; }
+    .color-pip:hover { opacity: .8; }
+    .color-pip.active { opacity: 1; border-color: var(--text); box-shadow: 0 0 0 2px rgba(255,255,255,.15); }
+    .color-pip.color-W { background: #f8f6d8; color: #6b5a2a; }
+    .color-pip.color-U { background: #0e68ab; color: #fff; }
+    .color-pip.color-B { background: #1a1a1a; color: #fff; }
+    .color-pip.color-R { background: #d3202a; color: #fff; }
+    .color-pip.color-G { background: #00733e; color: #fff; }
     .combo-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; transition: border-color .15s; }
     .combo-card:hover { border-color: #3a3d45; }
     .combo-header { display: flex; align-items: flex-start; gap: 16px; padding: 16px; cursor: pointer; }
@@ -234,6 +243,15 @@ function colorIdentityLabel(colorsArr) {
   const name = COLOR_IDENTITY_NAMES[canonical] || `${colorsArr.length}-color`;
   const letters = colorsArr.join('');
   return letters ? `${name} (${letters})` : name;
+}
+
+// Local ABB combos carry colorIdentity as an array (['W','U']); live
+// Commander Spellbook variants carry it as a concatenated string
+// identity field ("WU") instead — normalize both to an array of letters.
+function getComboColors(combo) {
+  if (Array.isArray(combo.colorIdentity)) return combo.colorIdentity;
+  if (typeof combo.identity === 'string') return combo.identity.split('').filter(Boolean);
+  return [];
 }
 
 function getMetrics(combo, sc, price, pieces) {
@@ -711,6 +729,8 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [colorFilter, setColorFilter] = useState([]);
+  const [sortMode, setSortMode] = useState('score');
   const [error, setError] = useState('');
 
   async function fetchPrice(name) {
@@ -772,7 +792,20 @@ function App() {
   }
 
   const FILTERS = ['all','Infinite','Token Engine','Draw Engine','Soft Lock','Mana Engine'];
-  const filtered = combos.filter(c => filter === 'all' || classifyType(c) === filter);
+  const COLORS = ['W','U','B','R','G'];
+
+  const filtered = combos.filter(c => {
+    const typeOk = filter === 'all' || classifyType(c) === filter;
+    const colors = getComboColors(c);
+    const colorOk = colorFilter.length === 0 || colors.every(col => colorFilter.includes(col));
+    return typeOk && colorOk;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    const priceOf = c => (c.uses?.map(u => u.card?.name).filter(Boolean) || []).reduce((s, n) => s + (prices[n] || 0), 0);
+    if (sortMode === 'price') return priceOf(a) - priceOf(b);
+    return scoreCombo(b, priceOf(b)).total - scoreCombo(a, priceOf(a)).total;
+  });
 
   return (
     <>
@@ -812,15 +845,29 @@ function App() {
                 <button type="button" className="add-card-link" onClick={() => setVisibleCount(v => Math.min(4, v + 1))}>+ Add card</button>
               )}
             </div>
-            <div className="filters">
+            <div className="filters" style={{marginBottom:10}}>
               {FILTERS.map(f => <button key={f} className={`filter-btn ${filter===f?'active':''}`} onClick={() => setFilter(f)}>{f==='all'?'All types':f}</button>)}
+              <button className="filter-btn" onClick={() => setSortMode(m => m === 'score' ? 'price' : 'score')}>
+                {sortMode === 'score' ? 'Sort: Score ↓' : 'Sort: Price ↑'}
+              </button>
+            </div>
+            <div className="filters color-filters">
+              <button className={`filter-btn ${colorFilter.length===0?'active':''}`} onClick={() => setColorFilter([])}>All Colors</button>
+              {COLORS.map(col => (
+                <button
+                  key={col}
+                  className={`color-pip color-${col} ${colorFilter.includes(col) ? 'active' : ''}`}
+                  title={COLOR_NAMES[col]}
+                  onClick={() => setColorFilter(prev => prev.includes(col) ? prev.filter(x => x !== col) : [...prev, col])}
+                >{col}</button>
+              ))}
             </div>
             {loading && <div className="status"><div className="spinner"/><div>Scoring results from Commander Spellbook...</div></div>}
             {error && <div className="status" style={{color:'var(--red)'}}>{error}</div>}
-            {!loading && searched && filtered.length === 0 && !error && <div className="status">No combos found for "{cardInputs.slice(0, visibleCount).map(c => c.trim()).filter(Boolean).join(' + ')}".</div>}
+            {!loading && searched && sorted.length === 0 && !error && <div className="status">No combos found for "{cardInputs.slice(0, visibleCount).map(c => c.trim()).filter(Boolean).join(' + ')}".</div>}
             {!loading && !searched && <div className="status"><div style={{fontSize:32,marginBottom:12}}>🍺</div><div style={{fontWeight:600,marginBottom:6}}>Start brewing</div><div style={{marginBottom:8}}>Search any card from our hand-scored ABB database.</div><div style={{fontSize:11,color:'var(--text2)'}}>Try: Herd Baloth · Midnight Guard · Mazirek · Taii Wakeen · Scrawling Crawler</div></div>}
-            {filtered.map((c,i) => <ComboCard key={c.id||i} combo={c} prices={prices} />)}
-            {filtered.length > 0 && <div style={{textAlign:'center',padding:'16px 0',color:'var(--text2)',fontSize:12}}>Showing {filtered.length} combo{filtered.length!==1?'s':''} · Prices from Scryfall · Combos from Commander Spellbook</div>}
+            {sorted.map((c,i) => <ComboCard key={c.id||i} combo={c} prices={prices} />)}
+            {sorted.length > 0 && <div style={{textAlign:'center',padding:'16px 0',color:'var(--text2)',fontSize:12}}>Showing {sorted.length} combo{sorted.length!==1?'s':''} · Prices from Scryfall · Combos from Commander Spellbook</div>}
           </>
         )}
         {tab === 'leaderboard' && (
