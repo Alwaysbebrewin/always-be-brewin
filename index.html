@@ -207,8 +207,23 @@ function scoreCombo(combo, totalPrice) {
   // BUDGET — revised divisor $150 for more meaningful differentiation
   const budget = Math.max(0, Math.min(100, Math.round(100 - (totalPrice / 150) * 100)));
 
-  // DISRUPTION RESIST — inverse piece count
-  const disrupt = Math.max(0, Math.round(100 - pieces * 12));
+  // DISRUPTION RESIST — card type determines how easily each piece is removed
+  // (typeLine covers live Commander Spellbook results; type_line covers local ABB data)
+  const disruptSum = combo.uses?.reduce((sum, u) => {
+    const type = (u.card?.type_line || u.card?.typeLine || u.card?.type || '').toLowerCase();
+    const isArtifactCreature = type.includes('artifact') && type.includes('creature');
+    const isCreature = type.includes('creature');
+    const isArtifact = type.includes('artifact') && !type.includes('creature');
+    const isEnchantment = type.includes('enchantment');
+    const isLand = type.includes('land');
+    if (isArtifactCreature) return sum + 10;
+    if (isCreature) return sum + 20;
+    if (isArtifact) return sum + 25;
+    if (isEnchantment) return sum + 35;
+    if (isLand) return sum + 45;
+    return sum + 20;
+  }, 0) || 0;
+  const disrupt = Math.min(100, Math.round(disruptSum / (combo.uses?.length || 1)));
 
   // BOARD IMPACT — keyword classification
   const impact = desc.includes('win the game') ? 100
@@ -496,7 +511,7 @@ function ComboCard({ combo, prices }) {
 const ABB_COMBOS = [
   {
     id: 1,
-    uses: [{card:{name:'Herd Baloth',cmc:5}},{card:{name:'Ivy Lane Denizen',cmc:4}}],
+    uses: [{card:{name:'Herd Baloth',cmc:5,type_line:'Creature — Beast'}},{card:{name:'Ivy Lane Denizen',cmc:4,type_line:'Creature — Elf Warrior'}}],
     colorIdentity: ['G'],
     description: 'Ivy Lane Denizen puts a +1/+1 counter on Herd Baloth when each green creature enters. Herd Baloth creates a 4/4 Beast token when a counter is placed on it. The Beast token is green, triggering Denizen again. Infinite 4/4 Beast tokens and infinite ETB triggers.',
     produces: [{feature:{name:'Infinite creature tokens'}},{feature:{name:'Infinite ETB triggers'}}],
@@ -508,7 +523,7 @@ const ABB_COMBOS = [
   },
   {
     id: 2,
-    uses: [{card:{name:'Presence of Gond',cmc:2}},{card:{name:'Midnight Guard',cmc:3}}],
+    uses: [{card:{name:'Presence of Gond',cmc:2,type_line:'Enchantment — Aura'}},{card:{name:'Midnight Guard',cmc:3,type_line:'Creature — Human Soldier'}}],
     colorIdentity: ['G','W'],
     description: 'Attach Presence of Gond to Midnight Guard. Tap Midnight Guard to create a 1/1 Elf token. The Elf entering untaps Midnight Guard via its triggered ability. Infinite 1/1 Elf tokens and infinite ETBs.',
     produces: [{feature:{name:'Infinite creature tokens'}},{feature:{name:'Infinite ETB triggers'}}],
@@ -520,7 +535,7 @@ const ABB_COMBOS = [
   },
   {
     id: 3,
-    uses: [{card:{name:'Basking Broodscale',cmc:2}},{card:{name:'Mazirek, Kraul Death Priest',cmc:5}}],
+    uses: [{card:{name:'Basking Broodscale',cmc:2,type_line:'Creature — Eldrazi Lizard'}},{card:{name:'Mazirek, Kraul Death Priest',cmc:5,type_line:'Legendary Creature — Insect Shaman'}}],
     colorIdentity: ['B','G'],
     description: 'Sacrifice any permanent to trigger Mazirek — +1/+1 counter on each creature including Broodscale. Broodscale creates a 0/1 Eldrazi Spawn token. Sacrifice the Spawn for colorless mana, triggering Mazirek again. Infinite colorless mana, infinite +1/+1 counters, infinite tokens, infinite ETBs, infinite death triggers, infinite sacrifice triggers.',
     produces: [{feature:{name:'Infinite colorless mana'}},{feature:{name:'Infinite +1/+1 counters'}},{feature:{name:'Infinite creature tokens'}}],
@@ -532,7 +547,7 @@ const ABB_COMBOS = [
   },
   {
     id: 4,
-    uses: [{card:{name:'Filigree Sages',cmc:4}},{card:{name:'Timeless Lotus',cmc:5}}],
+    uses: [{card:{name:'Filigree Sages',cmc:4,type_line:'Artifact Creature — Vedalken Wizard'}},{card:{name:'Timeless Lotus',cmc:5,type_line:'Legendary Artifact'}}],
     colorIdentity: ['W','U','B','R','G'],
     description: 'Tap Timeless Lotus for WUBRG. Pay {2}{U} to Filigree Sages to untap Timeless Lotus. Net gain per cycle: +WBRG. The U is consumed by Sages but W, B, R, G accumulate. Zero prerequisites. Self-funding loop. Note: No infinite blue mana — U is consumed each cycle.',
     produces: [{feature:{name:'Infinite colored mana'}},{feature:{name:'Infinite untap triggers'}}],
@@ -544,7 +559,7 @@ const ABB_COMBOS = [
   },
   {
     id: 5,
-    uses: [{card:{name:'Taii Wakeen, Perfect Shot',cmc:2}},{card:{name:'Blazing Volley',cmc:1}}],
+    uses: [{card:{name:'Taii Wakeen, Perfect Shot',cmc:2,type_line:'Legendary Creature — Human Mercenary'}},{card:{name:'Blazing Volley',cmc:1,type_line:'Sorcery'}}],
     colorIdentity: ['R','W'],
     description: 'Activate Taii Wakeen — your damage sources deal +1 this turn. Cast Blazing Volley dealing 2 damage to each opponent creature. Each 2/2 hit for exactly its toughness triggers Taii — draw a card per creature hit. Online by turn 3 with zero ramp. Scales freely — the more tokens opponents make, the more cards you draw for the same cost.',
     produces: [{feature:{name:'Card draw engine'}},{feature:{name:'Creature removal'}}],
@@ -556,7 +571,7 @@ const ABB_COMBOS = [
   },
   {
     id: 6,
-    uses: [{card:{name:'Radagast of Rhosgobel',cmc:4}},{card:{name:'Psychosis Crawler',cmc:5}}],
+    uses: [{card:{name:'Radagast of Rhosgobel',cmc:4,type_line:'Legendary Creature — Avatar Wizard'}},{card:{name:'Psychosis Crawler',cmc:5,type_line:'Artifact Creature — Phyrexian Horror'}}],
     colorIdentity: ['G'],
     description: 'Radagast makes your first creature each turn cost {2} less with flash. ETB draw engines trigger on each free creature. Psychosis Crawler deals 1 life loss to each opponent per draw. Net ~12 life drained per full turn cycle in 4-player pod. Scales exponentially as board grows.',
     produces: [{feature:{name:'Sustained damage'}},{feature:{name:'Card draw engine'}}],
@@ -568,7 +583,7 @@ const ABB_COMBOS = [
   },
   {
     id: 7,
-    uses: [{card:{name:'Scrawling Crawler',cmc:3}},{card:{name:'Forced Fruition',cmc:6}},{card:{name:'Narset, Parter of Veils',cmc:3}}],
+    uses: [{card:{name:'Scrawling Crawler',cmc:3,type_line:'Artifact Creature — Phyrexian Construct'}},{card:{name:'Forced Fruition',cmc:6,type_line:'Enchantment'}},{card:{name:'Narset, Parter of Veils',cmc:3,type_line:'Legendary Planeswalker — Narset'}}],
     colorIdentity: ['U'],
     description: 'Forced Fruition makes opponents draw 7 on each spell. Narset limits opponents to drawing 1 per turn — they discard 6 immediately. Scrawling Crawler drains 1 life per opponent draw. Every opponent spell costs 6 cards from hand and 1 life. Hard lock that empties hands and drains the table.',
     produces: [{feature:{name:'Hard lock'}},{feature:{name:'Life drain'}}],
@@ -579,7 +594,7 @@ const ABB_COMBOS = [
   },
   {
     id: 8,
-    uses: [{card:{name:'Crackdown Construct',cmc:4}},{card:{name:'Lightning Greaves',cmc:2}},{card:{name:'Ornithopter',cmc:0}}],
+    uses: [{card:{name:'Crackdown Construct',cmc:4,type_line:'Artifact Creature — Construct'}},{card:{name:'Lightning Greaves',cmc:2,type_line:'Artifact — Equipment'}},{card:{name:'Ornithopter',cmc:0,type_line:'Artifact Creature — Thopter'}}],
     colorIdentity: [],
     description: 'Equip Lightning Greaves between Crackdown Construct and Ornithopter (or any 0-cost artifact creature). Each {0} equip activation triggers Construct — gets +1/+1 until end of turn. Repeat infinitely. Construct becomes arbitrarily large. Attack for lethal. With Mountain + Sol Ring on T1, kills one opponent on Turn 2.',
     produces: [{feature:{name:'Infinite power creature'}},{feature:{name:'Win the game'}}],
@@ -591,7 +606,7 @@ const ABB_COMBOS = [
   },
   {
     id: 9,
-    uses: [{card:{name:'Mind Over Matter',cmc:6}},{card:{name:'Otherworldly Atlas',cmc:3}},{card:{name:'Scrawling Crawler',cmc:3}}],
+    uses: [{card:{name:'Mind Over Matter',cmc:6,type_line:'Enchantment'}},{card:{name:'Otherworldly Atlas',cmc:3,type_line:'Artifact — Book'}},{card:{name:'Scrawling Crawler',cmc:3,type_line:'Artifact Creature — Phyrexian Construct'}}],
     colorIdentity: ['U'],
     description: 'Tap Otherworldly Atlas (2+ charge counters) to draw cards for each player. Discard a card to Mind Over Matter to untap Atlas. Net +1 card per cycle. Scrawling Crawler deals 1 life to each opponent per draw. Loop until opponents drained or you draw your entire deck.',
     produces: [{feature:{name:'Infinite card draw'}},{feature:{name:'Life drain'}}],
@@ -602,7 +617,7 @@ const ABB_COMBOS = [
   },
   {
     id: 10,
-    uses: [{card:{name:'Bloodthirsty Conqueror',cmc:4}},{card:{name:'Blight-Priest of Myrkul',cmc:3}}],
+    uses: [{card:{name:'Bloodthirsty Conqueror',cmc:4,type_line:'Creature — Vampire Knight'}},{card:{name:'Blight-Priest of Myrkul',cmc:3}}],
     colorIdentity: ['B'],
     description: 'Bloodthirsty Conqueror creates Vampire tokens when opponents lose life. Blight-Priest drains opponents when you gain life. Together create a drain and token engine that scales with life swings.',
     produces: [{feature:{name:'Life drain'}},{feature:{name:'Creature tokens'}}],
@@ -613,7 +628,7 @@ const ABB_COMBOS = [
   },
   {
     id: 11,
-    uses: [{card:{name:'Bramble Sovereign',cmc:4}},{card:{name:'The Notary Hobbits',cmc:4}}],
+    uses: [{card:{name:'Bramble Sovereign',cmc:4,type_line:'Creature — Dryad'}},{card:{name:'The Notary Hobbits',cmc:4,type_line:'Legendary Creature — Halfling Advisor'}}],
     colorIdentity: ['G'],
     description: 'Cast The Notary Hobbits — Bramble Sovereign triggers ONCE (nontoken creature ETB only). Pay {1}{G} → create one token copy. Original Notary ETB creates 2 Halfling tokens. Token copy ETB creates 2 more. Total: 5 Halflings on board for {1}{G}. RULES NOTE: Tokens do NOT re-trigger Bramble Sovereign — the cascade loop does not exist.',
     produces: [{feature:{name:'Token engine'}},{feature:{name:'Mana advantage'}}],
@@ -624,7 +639,7 @@ const ABB_COMBOS = [
   },
   {
     id: 12,
-    uses: [{card:{name:'Memnite',cmc:0}},{card:{name:'Bladehold War-Whip',cmc:3}},{card:{name:'Koll, the Forgemaster',cmc:2}},{card:{name:'Skullclamp',cmc:1}}],
+    uses: [{card:{name:'Memnite',cmc:0,type_line:'Artifact Creature — Construct'}},{card:{name:'Bladehold War-Whip',cmc:3,type_line:'Artifact — Equipment'}},{card:{name:'Koll, the Forgemaster',cmc:2,type_line:'Legendary Creature — Dwarf Warrior'}},{card:{name:'Skullclamp',cmc:1,type_line:'Artifact — Equipment'}}],
     colorIdentity: ['R','W'],
     description: 'Bladehold War-Whip reduces Skullclamp\'s equip cost from {1} to {0}. Equip Skullclamp to Memnite (free) → Memnite becomes 2/0, dies immediately. Skullclamp triggers → draw 2. Koll triggers → Memnite (equipped nontoken) returns to hand. Recast Memnite free → equip free → repeat. Draw entire library for zero mana per cycle. Fun factor: very high.',
     produces: [{feature:{name:'Draw entire library'}},{feature:{name:'Infinite card draw'}}],
@@ -636,7 +651,7 @@ const ABB_COMBOS = [
   },
   {
     id: 13,
-    uses: [{card:{name:'Hawkeye\'s Bow',cmc:1}},{card:{name:'Pemmin\'s Aura',cmc:3}},{card:{name:'Birds of Paradise',cmc:1}}],
+    uses: [{card:{name:'Hawkeye\'s Bow',cmc:1,type_line:'Artifact — Equipment'}},{card:{name:'Pemmin\'s Aura',cmc:3,type_line:'Enchantment — Aura'}},{card:{name:'Birds of Paradise',cmc:1,type_line:'Creature — Bird'}}],
     colorIdentity: ['G','U','R'],
     description: 'Equip Hawkeye\'s Bow to Birds of Paradise. Enchant Birds with Pemmin\'s Aura. Tap Birds — Bow deals 1 damage to each opponent and Birds produces {U}. Pay {U} to Pemmin\'s Aura to untap Birds. Zero net mana cost per cycle. Kills all opponents simultaneously. T3 kill with Forest T1 + Island T2. Note: Birds of Paradise can only be removed by creature removal — better disruption resistance than artifact creatures which face both creature AND artifact removal.',
     produces: [{feature:{name:'Infinite damage to each opponent'}},{feature:{name:'Win the game'}}],
@@ -648,7 +663,7 @@ const ABB_COMBOS = [
   },
   {
     id: 14,
-    uses: [{card:{name:'Silver Myr',cmc:2}},{card:{name:"Hawkeye's Bow",cmc:1}},{card:{name:'Freed from the Real',cmc:3}}],
+    uses: [{card:{name:'Silver Myr',cmc:2,type_line:'Artifact Creature — Myr'}},{card:{name:"Hawkeye's Bow",cmc:1,type_line:"Artifact — Equipment"}},{card:{name:'Freed from the Real',cmc:3,type_line:'Enchantment — Aura'}}],
     colorIdentity: ['U'],
     description: 'Equip Hawkeye\'s Bow to Silver Myr. Enchant Silver Myr with Freed from the Real. Tap Silver Myr — Bow deals 1 damage to each opponent and Silver Myr produces {U}. Pay {U} to Freed from the Real to untap Silver Myr. Zero net mana cost per cycle. Kills all opponents simultaneously. T3 kill without Sol Ring. Note: Silver Myr is vulnerable to both creature AND artifact removal — more removal vectors than the Birds of Paradise version.',
     produces: [{feature:{name:'Infinite damage to each opponent'}},{feature:{name:'Win the game'}}],
@@ -660,7 +675,7 @@ const ABB_COMBOS = [
   },
   {
     id: 15,
-    uses: [{card:{name:'Herd Baloth',cmc:5}},{card:{name:'Ivy Lane Denizen',cmc:4}},{card:{name:'Altar of the Brood',cmc:1}}],
+    uses: [{card:{name:'Herd Baloth',cmc:5,type_line:'Creature — Beast'}},{card:{name:'Ivy Lane Denizen',cmc:4,type_line:'Creature — Elf Warrior'}},{card:{name:'Altar of the Brood',cmc:1,type_line:'Artifact'}}],
     colorIdentity: ['G'],
     description: 'Ivy Lane Denizen puts a +1/+1 counter on Herd Baloth when each green creature enters. Herd Baloth creates a 4/4 Beast token — triggering Denizen again. Each creature entering mills each opponent 1 card via Altar of the Brood. Infinite Beast tokens plus mill entire libraries. Wins without attacking. Stays mono-green — colorless Altar preserves identity.',
     produces: [{feature:{name:'Infinite creature tokens'}},{feature:{name:'Infinite mill'}}],
@@ -672,7 +687,7 @@ const ABB_COMBOS = [
   },
   {
     id: 16,
-    uses: [{card:{name:'Herd Baloth',cmc:5}},{card:{name:'Ivy Lane Denizen',cmc:4}},{card:{name:'Impact Tremors',cmc:2}}],
+    uses: [{card:{name:'Herd Baloth',cmc:5,type_line:'Creature — Beast'}},{card:{name:'Ivy Lane Denizen',cmc:4,type_line:'Creature — Elf Warrior'}},{card:{name:'Impact Tremors',cmc:2,type_line:'Enchantment'}}],
     colorIdentity: ['R','G'],
     description: 'Ivy Lane Denizen puts a +1/+1 counter on Herd Baloth when each green creature enters. Herd Baloth creates a 4/4 Beast token — triggering Denizen again. Each Beast token entering deals 1 damage to each opponent via Impact Tremors. Infinite Beast tokens plus infinite damage to all opponents simultaneously. Wins without attacking. Note: adding red drops this from mono-green S tier to A tier — the color penalty is significant.',
     produces: [{feature:{name:'Win the game'}},{feature:{name:'Infinite creature tokens'}},{feature:{name:'Infinite damage to each opponent'}}],
@@ -684,7 +699,7 @@ const ABB_COMBOS = [
   },
   {
     id: 17,
-    uses: [{card:{name:'Aquamoeba',cmc:2}},{card:{name:'Drake Haven',cmc:3}},{card:{name:'Skullclamp',cmc:1}},{card:{name:"Ashnod's Altar",cmc:3}}],
+    uses: [{card:{name:'Aquamoeba',cmc:2,type_line:'Creature — Elemental Beast'}},{card:{name:'Drake Haven',cmc:3,type_line:'Enchantment'}},{card:{name:'Skullclamp',cmc:1,type_line:'Artifact — Equipment'}},{card:{name:"Ashnod's Altar",cmc:3,type_line:"Artifact"}}],
     colorIdentity: ['U'],
     description: 'Discard a card to Aquamoeba (free). Drake Haven triggers — pay {1} to create a 2/2 Drake token. Equip Skullclamp to the Drake for {1} — Drake becomes 3/1 and survives (intentional — 2/2 survives the clamp unlike 1/1s). Sacrifice the Drake to Ashnod\'s Altar for {2} colorless. Skullclamp triggers — draw 2 cards. Net mana cost per cycle: zero. Repeat to draw entire library. Full control over draw speed.',
     produces: [{feature:{name:'Infinite card draw'}},{feature:{name:'Draw entire library'}}],
@@ -696,7 +711,7 @@ const ABB_COMBOS = [
   },
   {
     id: 18,
-    uses: [{card:{name:'Shorikai, Genesis Engine',cmc:5}},{card:{name:'Palladium Myr',cmc:3}},{card:{name:'Intruder Alarm',cmc:3}}],
+    uses: [{card:{name:'Shorikai, Genesis Engine',cmc:5,type_line:'Legendary Artifact — Vehicle'}},{card:{name:'Palladium Myr',cmc:3,type_line:'Artifact Creature — Myr'}},{card:{name:'Intruder Alarm',cmc:3,type_line:'Enchantment'}}],
     colorIdentity: ['W','U'],
     description: 'Shorikai must be crewed first — needs a creature with power 2+, the 1/1 Pilots it creates cannot crew it. Tap Palladium Myr for {2}. Pay {1} to activate Shorikai — draw 2, discard 1, create a 1/1 Pilot token. Pilot enters — Intruder Alarm untaps ALL creatures. Repeat. Net +1 colorless per cycle. Infinite draw, infinite colorless mana, infinite 1/1 Pilot tokens simultaneously.',
     produces: [{feature:{name:'Infinite card draw'}},{feature:{name:'Infinite colorless mana'}},{feature:{name:'Infinite creature tokens'}}],
@@ -708,7 +723,7 @@ const ABB_COMBOS = [
   },
   {
     id: 19,
-    uses: [{card:{name:"Hawkeye's Bow",cmc:1}},{card:{name:"Pemmin's Aura",cmc:3}},{card:{name:'Birds of Paradise',cmc:1}},{card:{name:'Fateful Discovery',cmc:5}},{card:{name:'The Locust God',cmc:6}},{card:{name:'Donatello, the Brains',cmc:3}}],
+    uses: [{card:{name:"Hawkeye's Bow",cmc:1,type_line:"Artifact — Equipment"}},{card:{name:"Pemmin's Aura",cmc:3,type_line:"Enchantment — Aura"}},{card:{name:'Birds of Paradise',cmc:1,type_line:'Creature — Bird'}},{card:{name:'Fateful Discovery',cmc:5,type_line:'Enchantment'}},{card:{name:'The Locust God',cmc:6,type_line:'Legendary Creature — God'}},{card:{name:'Donatello, the Brains',cmc:3,type_line:'Legendary Creature — Mutant Ninja Turtle'}}],
     colorIdentity: ['U','R'],
     userDiscovered: true,
     description: 'Draw a card — The Locust God creates a 1/1 Insect token with flying and haste. Donatello\'s replacement effect triggers — Insect token PLUS a Mutagen token are created instead. Mutagen token is a colorless artifact — enters the battlefield — Fateful Discovery triggers — draw a card. Repeat infinitely. Infinite draw, infinite Insect tokens, infinite Mutagen tokens. First documented combo using Donatello + Fateful Discovery — discovered by Always Be Brewin.',
@@ -721,7 +736,7 @@ const ABB_COMBOS = [
   },
   {
     id: 20,
-    uses: [{card:{name:'Electro, Assaulting Battery',cmc:3}},{card:{name:'Magda, the Hoardmaster',cmc:3}},{card:{name:'Soulbright Flamekin',cmc:2}}],
+    uses: [{card:{name:'Electro, Assaulting Battery',cmc:3,type_line:'Legendary Creature — Human Villain'}},{card:{name:'Magda, the Hoardmaster',cmc:3,type_line:'Legendary Creature — Dwarf Berserker'}},{card:{name:'Soulbright Flamekin',cmc:2,type_line:'Creature — Elemental Shaman'}}],
     colorIdentity: ['R'],
     description: 'Activate Soulbright Flamekin 3 times targeting opponent creatures — spend 6R total, gain 8R on the third activation, net +2R. Each activation is a crime, triggering Magda for a Treasure token. Electro banks all red mana across turns. In a 4-player pod generates net +8R and 4 Treasures per full turn cycle. Note: Soulbright generates 8R ONLY on the third activation — not 4th, 5th, or beyond.',
     produces: [{feature:{name:'Sustained mana advantage'}},{feature:{name:'Treasure tokens'}}],
@@ -734,8 +749,8 @@ const ABB_COMBOS = [
   {
     id: 21,
     uses: [
-      {card:{name:'Ganax, Astral Hunter',cmc:5}},
-      {card:{name:'Draconic Visitor',cmc:5}}
+      {card:{name:'Ganax, Astral Hunter',cmc:5,type_line:'Legendary Creature — Dragon'}},
+      {card:{name:'Draconic Visitor',cmc:5,type_line:'Creature — Dragon'}}
     ],
     colorIdentity: ['R'],
     description: 'Cast either dragon, then cast the other. Ganax triggers whenever a dragon enters — would create a Treasure token. Draconic Visitor replaces that Treasure with a 5/5 Dragon token. That Dragon entering triggers Ganax again. Infinite 5/5 Dragon tokens. WARNING: Neither ability has "may" — this loop is mandatory. You MUST have a win condition on the battlefield before starting or the game draws. Use Impact Tremors, Warstorm Surge, or similar to win simultaneously.',
@@ -749,9 +764,9 @@ const ABB_COMBOS = [
   {
     id: 22,
     uses: [
-      {card:{name:'Sanar, Unfinished Genius',cmc:2}},
-      {card:{name:'Draconic Visitor',cmc:5}},
-      {card:{name:'Intruder Alarm',cmc:3}}
+      {card:{name:'Sanar, Unfinished Genius',cmc:2,type_line:'Legendary Creature — Goblin Sorcerer'}},
+      {card:{name:'Draconic Visitor',cmc:5,type_line:'Creature — Dragon'}},
+      {card:{name:'Intruder Alarm',cmc:3,type_line:'Enchantment'}}
     ],
     colorIdentity: ['U','R'],
     description: 'Cast any instant or sorcery (even a cantrip) to unlock Sanar for the turn. Tap Sanar — would create a Treasure token. Draconic Visitor replaces that Treasure with a 5/5 Dragon token. Dragon entering triggers Intruder Alarm — untap ALL creatures including Sanar. Tap Sanar again. Repeat for as many Dragons as you want. FULLY CONTROLLED — Sanar is an activated ability you choose to use. Stop the loop any time. No mandatory draw risk.',
