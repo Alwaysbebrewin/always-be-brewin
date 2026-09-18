@@ -364,7 +364,7 @@ function ComboCard({ combo, prices }) {
             <div className="section-title" style={{marginTop:14}}>Buy Cards</div>
             <div className="buy-links" style={{marginBottom:14}}>
               {cards.map(c => (
-                <a key={`outpost-${c}`} className="buy-link outpost" title="Local LGS" href={`https://gameoutpost.com/search?type=product&q=${encodeURIComponent(c)}&filter.v.collection.handle=all-singles`} target="_blank" rel="noopener noreferrer" onClick={() => trackClick('GameOutpost', c, comboName)}>🏪 Game Outpost · {c}<span className="buy-link-sub">Local LGS</span></a>
+                <a key={`outpost-${c}`} className="buy-link outpost" title="Game Outpost" href={`https://gameoutpost.com/search?type=product&q=${encodeURIComponent(c)}&filter.v.collection.handle=all-singles`} target="_blank" rel="noopener noreferrer" onClick={() => trackClick('GameOutpost', c, comboName)}>🏪 Game Outpost · {c}<span className="buy-link-sub">Game Outpost</span></a>
               ))}
               {cards.map(c => (
                 <a key={`tcg-${c}`} className="buy-link tcg" href={`https://www.tcgplayer.com/search/magic/product?q=${encodeURIComponent(c)}&utm_source=alwaysbebrewin`} target="_blank" rel="noopener noreferrer" onClick={() => trackClick('TCGPlayer', c, comboName)}>TCG · {c}</a>
