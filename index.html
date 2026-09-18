@@ -340,11 +340,11 @@ function InfoTip({ text }) {
 }
 
 const AXIS_INFO = {
-  'Effort': 'Piece count and total mana cost weighted equally. Fewer, cheaper pieces score higher.',
-  'Consistency': '1-2 colors score perfect. Each color beyond that costs 25 points.',
-  'Budget': 'Based on total card price against a $150 ceiling — cheaper combos score higher.',
-  'Disruption Resist': 'Fewer pieces means fewer targets for opponents\' removal.',
-  'Board Impact': 'How game-ending the payoff is — infinite loops and win conditions score highest.',
+  'Effort': 'Weighted by number of pieces AND total mana cost. Fewer pieces + cheaper cards = higher score.',
+  'Consistency': '1–2 colors = no penalty. 3 colors = −25pts, 4 colors = −50pts, 5 colors = −75pts.',
+  'Budget': 'Live prices. Under $5 scores near perfect. $75+ scores zero. Divisor: $150.',
+  'Disruption Resist': 'Artifact creatures are hardest to protect (two removal vectors). Enchantments and lands score best.',
+  'Board Impact': 'Win the game = 100. Infinite loop = 95. Sustained engine = 85. Draw engine = 70. Tokens/damage = 60. Minor = 40.',
 };
 
 function ComboCard({ combo, prices }) {
