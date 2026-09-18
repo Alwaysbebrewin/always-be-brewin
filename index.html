@@ -176,13 +176,27 @@ const LEADERBOARD = [
   { name: 'Chatterfang Engine',                         price: 7.75,  score: 52, grade: 'B', colors: 'BG',    pieces: 4, type: 'Token Engine' },
 ];
 
+// Manual CMC overrides for cards not yet in the Commander Spellbook database.
+const KNOWN_CMC = {
+  'Draconic Visitor': 5,
+  // Add future unknown cards here as needed
+};
+
 function scoreCombo(combo, totalPrice) {
   const pieces = combo.uses?.length || 2;
   const colors = combo.colorIdentity?.length || 1;
   const desc = (combo.produces?.map(p => p.feature?.name || '').join(' ') + ' ' + (combo.description || '')).toLowerCase();
 
   // EFFORT — piece count + CMC weighted equally
-  const totalCMC = combo.uses?.reduce((sum, u) => sum + (u.card?.cmc || 0), 0) || 0;
+  const totalCMC = combo.uses?.reduce((sum, u) => {
+    const name = u.card?.name || '';
+    const cmc = KNOWN_CMC[name] !== undefined ? KNOWN_CMC[name] : (u.card?.cmc || 0);
+    return sum + cmc;
+  }, 0) || 0;
+  const hasUnknownCMC = combo.uses?.some(u => {
+    const name = u.card?.name || '';
+    return KNOWN_CMC[name] === undefined && (!u.card?.cmc && u.card?.cmc !== 0);
+  }) || false;
   const pieceScore = Math.max(0, Math.round(100 - ((pieces - 2) / 4) * 100));
   const cmcScore = Math.max(0, Math.round(100 - (totalCMC / 15) * 100));
   const effort = Math.round(pieceScore * 0.5 + cmcScore * 0.5);
@@ -208,7 +222,7 @@ function scoreCombo(combo, totalPrice) {
   );
 
   const grade = total >= 80 ? 'S' : total >= 65 ? 'A' : total >= 45 ? 'B' : 'C';
-  return { total, grade, effort, consistency, budget, disrupt, impact };
+  return { total, grade, effort, consistency, budget, disrupt, impact, hasUnknownCMC };
 }
 
 function classifyType(combo) {
@@ -338,6 +352,11 @@ function ComboCard({ combo, prices }) {
             {combo.userDiscovered && (
               <span style={{fontSize:'10px',padding:'2px 8px',borderRadius:'20px',fontWeight:'500',background:'rgba(139,92,246,0.15)',color:'#a78bfa',border:'1px solid rgba(139,92,246,0.3)'}}>
                 🔍 User Discovered
+              </span>
+            )}
+            {sc.hasUnknownCMC && (
+              <span style={{fontSize:'10px',padding:'2px 8px',borderRadius:'20px',fontWeight:'500',background:'rgba(234,179,8,0.15)',color:'#fbbf24',border:'1px solid rgba(234,179,8,0.3)'}}>
+                ⚠️ Score estimated
               </span>
             )}
             <span className="meta-pill pill-type">{type}</span>
