@@ -321,6 +321,32 @@ window.viewABBStats = function() {
   return { byStore, byCard, total: clicks.length };
 };
 
+function InfoTip({ text }) {
+  const [show, setShow] = useState(false);
+  return (
+    <span style={{position:'relative',display:'inline-block',marginLeft:'4px'}}>
+      <span
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+        style={{cursor:'help',color:'var(--text2)',fontSize:'11px',border:'1px solid var(--border)',borderRadius:'50%',width:'14px',height:'14px',display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1}}
+      >ⓘ</span>
+      {show && (
+        <div style={{position:'absolute',bottom:'120%',left:'50%',transform:'translateX(-50%)',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:'8px',padding:'8px 10px',fontSize:'11px',color:'var(--text2)',width:'200px',zIndex:100,lineHeight:'1.4',whiteSpace:'normal'}}>
+          {text}
+        </div>
+      )}
+    </span>
+  );
+}
+
+const AXIS_INFO = {
+  'Effort': 'Piece count and total mana cost weighted equally. Fewer, cheaper pieces score higher.',
+  'Consistency': '1-2 colors score perfect. Each color beyond that costs 25 points.',
+  'Budget': 'Based on total card price against a $150 ceiling — cheaper combos score higher.',
+  'Disruption Resist': 'Fewer pieces means fewer targets for opponents\' removal.',
+  'Board Impact': 'How game-ending the payoff is — infinite loops and win conditions score highest.',
+};
+
 function ComboCard({ combo, prices }) {
   const [open, setOpen] = useState(false);
   const [fullOpen, setFullOpen] = useState(false);
@@ -374,7 +400,7 @@ function ComboCard({ combo, prices }) {
             <div className="axes">
               {axes.map(a => (
                 <div key={a.name} className="axis">
-                  <span className="axis-name">{a.name}</span>
+                  <span className="axis-name">{a.name}<InfoTip text={AXIS_INFO[a.name]} /></span>
                   <div className="axis-track"><div className="axis-fill" style={{width:`${a.val}%`,background:a.color}} /></div>
                   <span className="axis-val" style={{color:a.color}}>{a.val}</span>
                 </div>
@@ -409,7 +435,7 @@ function ComboCard({ combo, prices }) {
                     const pts = Math.round(a.val / 100 * a.weight);
                     return (
                       <div key={a.name} className="axis">
-                        <span className="axis-name">{a.name}</span>
+                        <span className="axis-name">{a.name}<InfoTip text={AXIS_INFO[a.name]} /></span>
                         <div className="axis-track"><div className="axis-fill" style={{width:`${a.val}%`,background:a.color}} /></div>
                         <span className="axis-val" style={{color:a.color}}>{a.val}</span>
                         <span className="axis-points">+{pts} / {a.weight}</span>
