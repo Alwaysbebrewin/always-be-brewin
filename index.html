@@ -704,6 +704,37 @@ const ABB_COMBOS = [
       {card:'Reckless Handling (~$1)', why:'Tutor any artifact to hand. Finds Electro or any missing piece instantly.'},
       {card:'Treasure Map (~$2)', why:'Generates Treasures passively. More Treasures entering triggers more Magda activations.'}
     ]
+  },
+  {
+    id: 21,
+    uses: [
+      {card:{name:'Ganax, Astral Hunter',cmc:5}},
+      {card:{name:'Draconic Visitor',cmc:5}}
+    ],
+    colorIdentity: ['R'],
+    description: 'Cast either dragon, then cast the other. Ganax triggers whenever a dragon enters — would create a Treasure token. Draconic Visitor replaces that Treasure with a 5/5 Dragon token. That Dragon entering triggers Ganax again. Infinite 5/5 Dragon tokens. WARNING: Neither ability has "may" — this loop is mandatory. You MUST have a win condition on the battlefield before starting or the game draws. Use Impact Tremors, Warstorm Surge, or similar to win simultaneously.',
+    produces: [{feature:{name:'Infinite creature tokens'}},{feature:{name:'Win the game'}}],
+    upgrades: [
+      {card:'Impact Tremors (~$1)', why:'Each Dragon entering deals 1 damage to each opponent. Required to win — stops the mandatory draw.'},
+      {card:'Warstorm Surge (~$2)', why:'Each Dragon deals damage equal to its power (5) on entry. Faster kill than Impact Tremors.'},
+      {card:'Purphoros, God of the Forge (~$12)', why:'2 damage per creature entering, indestructible. Best win condition for this combo.'}
+    ]
+  },
+  {
+    id: 22,
+    uses: [
+      {card:{name:'Sanar, Unfinished Genius',cmc:2}},
+      {card:{name:'Draconic Visitor',cmc:5}},
+      {card:{name:'Intruder Alarm',cmc:3}}
+    ],
+    colorIdentity: ['U','R'],
+    description: 'Cast any instant or sorcery (even a cantrip) to unlock Sanar for the turn. Tap Sanar — would create a Treasure token. Draconic Visitor replaces that Treasure with a 5/5 Dragon token. Dragon entering triggers Intruder Alarm — untap ALL creatures including Sanar. Tap Sanar again. Repeat for as many Dragons as you want. FULLY CONTROLLED — Sanar is an activated ability you choose to use. Stop the loop any time. No mandatory draw risk.',
+    produces: [{feature:{name:'Infinite creature tokens'}},{feature:{name:'Win the game'}}],
+    upgrades: [
+      {card:'Opt (~$0.25)', why:'The cheapest instant to unlock Sanar each turn. One blue mana opens the loop.'},
+      {card:'Pemmin\'s Aura (~$5)', why:'Replaces Intruder Alarm at 1/4 the price. Pay {U} to untap Sanar instead of relying on creature ETB.'},
+      {card:'Impact Tremors (~$1)', why:'Each Dragon entering deals 1 damage. Unlimited Dragons = dead table without attacking.'}
+    ]
   }
 ];
 
