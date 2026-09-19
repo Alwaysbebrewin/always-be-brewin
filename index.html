@@ -168,7 +168,10 @@ const LEADERBOARD = [
   { name: 'Fateful Discovery + Locust God + Donatello', price: 23.49, score: 79, grade: 'A', colors: 'UR',    pieces: 3, type: 'Draw Engine' },
   { name: 'Hawkeye\'s Bow + Pemmin\'s Aura + Birds',   price: 6.79,  score: 78, grade: 'A', colors: 'GUR',   pieces: 3, type: 'Infinite Damage' },
   { name: 'Shorikai + Palladium Myr + Intruder Alarm',  price: 28.50, score: 76, grade: 'A', colors: 'WU',    pieces: 3, type: 'Infinite Loop' },
+  { name: 'Hall of Echoes + Gisela + Blade of Selves',  price: 22,    score: 73, grade: 'A', colors: 'RW',    pieces: 3, type: 'Combat Damage' },
+  { name: 'Crackdown Construct + Martyrdom + Ignition', price: 7,     score: 71, grade: 'A', colors: 'RW',    pieces: 3, type: 'Glass Cannon' },
   { name: 'Filigree Sages + Timeless Lotus',            price: 6.06,  score: 68, grade: 'A', colors: 'WUBRG', pieces: 2, type: 'Infinite Mana' },
+  { name: 'Kudo + Nature\'s Revolt + Elesh Norn',      price: 26,    score: 68, grade: 'A', colors: 'GW',    pieces: 3, type: 'Stax Lock' },
   { name: 'Bramble Sovereign + Notary Hobbits',         price: 6.15,  score: 66, grade: 'A', colors: 'G',     pieces: 2, type: 'Token Engine' },
   { name: 'Scrawling Crawler + Forced Fruition + Narset', price: 15.53, score: 63, grade: 'B', colors: 'U',   pieces: 3, type: 'Hard Lock' },
   { name: 'Memnite + War-Whip + Koll + Skullclamp',    price: 3.06,  score: 55, grade: 'B', colors: 'RW',    pieces: 4, type: 'Draw Engine' },
@@ -176,26 +179,37 @@ const LEADERBOARD = [
   { name: 'Chatterfang Engine',                         price: 7.75,  score: 52, grade: 'B', colors: 'BG',    pieces: 4, type: 'Token Engine' },
 ];
 
-// Manual CMC overrides for cards not yet in the Commander Spellbook database.
+// Manual CMC overrides for cards not yet in the Commander Spellbook database
+// (that API never returns a mana-value field on card objects at all — verified
+// against the live API, not a naming mismatch — so these are the only way
+// non-local combos referencing these cards score an accurate Effort).
 const KNOWN_CMC = {
   'Draconic Visitor': 5,
+  'Cathodion': 3,
   // Add future unknown cards here as needed
 };
 
+// Cards genuinely costing {0} — must be excluded from the "unknown CMC"
+// warning even though live API results never carry an explicit cmc:0.
+const FREE_CARDS = ['Ornithopter', 'Memnite', 'Shield Sphere', 'Phyrexian Walker',
+  'Kobolds of Kher Keep', 'Crimson Kobolds', 'Crookshank Kobolds', 'Hall of Echoes'];
+
 function scoreCombo(combo, totalPrice) {
   const pieces = combo.uses?.length || 2;
-  const colors = combo.colorIdentity?.length || 1;
+  const colors = getComboColors(combo).length;
   const desc = (combo.produces?.map(p => p.feature?.name || '').join(' ') + ' ' + (combo.description || '')).toLowerCase();
 
   // EFFORT — piece count + CMC weighted equally
   const totalCMC = combo.uses?.reduce((sum, u) => {
     const name = u.card?.name || '';
-    const cmc = KNOWN_CMC[name] !== undefined ? KNOWN_CMC[name] : (u.card?.cmc || 0);
-    return sum + cmc;
+    if (KNOWN_CMC[name] !== undefined) return sum + KNOWN_CMC[name];
+    if (FREE_CARDS.includes(name)) return sum + 0;
+    return sum + (u.card?.cmc || 0);
   }, 0) || 0;
   const hasUnknownCMC = combo.uses?.some(u => {
     const name = u.card?.name || '';
-    return KNOWN_CMC[name] === undefined && (!u.card?.cmc && u.card?.cmc !== 0);
+    if (KNOWN_CMC[name] !== undefined || FREE_CARDS.includes(name)) return false;
+    return !u.card?.cmc && u.card?.cmc !== 0;
   }) || false;
   const pieceScore = Math.max(0, Math.round(100 - ((pieces - 2) / 4) * 100));
   const cmcScore = Math.max(0, Math.round(100 - (totalCMC / 15) * 100));
@@ -284,7 +298,7 @@ function getComboColors(combo) {
 }
 
 function getMetrics(combo, sc, price, pieces) {
-  const colors = combo.colorIdentity || [];
+  const colors = getComboColors(combo);
 
   const effortSub = sc.effort >= 90 ? 'Perfect piece count' : sc.effort >= 60 ? 'Great piece count' : sc.effort >= 35 ? 'Good piece count' : 'Many pieces required';
 
@@ -402,7 +416,7 @@ function ComboCard({ combo, prices }) {
             )}
             <span className="meta-pill pill-type">{type}</span>
             <span className="meta-pill pill-price">${price.toFixed(2)}</span>
-            {combo.colorIdentity && <span className="meta-pill pill-color">{colorIdentityLabel(combo.colorIdentity)}</span>}
+            <span className="meta-pill pill-color">{colorIdentityLabel(getComboColors(combo))}</span>
           </div>
           <div className="combo-pieces">{cards.map(c => <span key={c} className="piece-tag">{c}</span>)}</div>
         </div>
@@ -775,6 +789,54 @@ const ABB_COMBOS = [
       {card:'Opt (~$0.25)', why:'The cheapest instant to unlock Sanar each turn. One blue mana opens the loop.'},
       {card:'Pemmin\'s Aura (~$5)', why:'Replaces Intruder Alarm at 1/4 the price. Pay {U} to untap Sanar instead of relying on creature ETB.'},
       {card:'Impact Tremors (~$1)', why:'Each Dragon entering deals 1 damage. Unlimited Dragons = dead table without attacking.'}
+    ]
+  },
+  {
+    id: 23,
+    uses: [
+      {card:{name:'Kudo, King Among Bears',cmc:2,type_line:'Legendary Creature — Bear'}},
+      {card:{name:"Nature's Revolt",cmc:5,type_line:'Enchantment'}},
+      {card:{name:'Elesh Norn, Grand Cenobite',cmc:7,type_line:'Legendary Creature — Phyrexian Praetor'}}
+    ],
+    colorIdentity: ['G','W'],
+    description: "Nature's Revolt turns all lands into 2/2 creatures. Kudo sets every other creature's base power/toughness to 2/2. Elesh Norn's static -2/-2 to opponent creatures applies after Kudo's base-setting effect (layers), collapsing every one of their 2/2s — including their animated lands — to 0/0. All opponent creatures AND all their lands die simultaneously. Your own creatures become 4/4s under Norn's +2/+2 anthem instead. One-sided static board and land wipe.",
+    produces: [{feature:{name:'One-sided board wipe'}},{feature:{name:'Win the game'}}],
+    upgrades: [
+      {card:'Privileged Position (~$8)', why:'Gives your permanents hexproof. Protects Kudo, Norn, and Nature\'s Revolt from targeted removal before the lock assembles.'},
+      {card:'Sterling Grove (~$5)', why:'Tutors any enchantment including Nature\'s Revolt. Also gives enchantments shroud while it\'s on board.'},
+      {card:'Eladamri\'s Call (~$3)', why:'Instant-speed creature tutor. Finds Kudo or Elesh Norn as needed to assemble the lock.'}
+    ]
+  },
+  {
+    id: 24,
+    uses: [
+      {card:{name:'Crackdown Construct',cmc:4,type_line:'Artifact Creature — Construct'}},
+      {card:{name:'Martyrdom',cmc:3,type_line:'Instant'}},
+      {card:{name:"Chandra's Ignition",cmc:5,type_line:'Sorcery'}}
+    ],
+    colorIdentity: ['R','W'],
+    description: "Cast Martyrdom targeting Crackdown Construct — it gains a free {0} activated ability until end of turn (redirecting the next 1 damage to itself, with no restriction on how many times you activate it). Activating that ability is activating an ability of a creature you control, which triggers Crackdown Construct's own +1/+1-until-end-of-turn trigger. Activate it as many times as you want, then cast Chandra's Ignition targeting Crackdown Construct — deals that damage to every opponent and every creature they control simultaneously.",
+    produces: [{feature:{name:'One-shot kill'}},{feature:{name:'Hits all opponents simultaneously'}}],
+    upgrades: [
+      {card:'Swiftfoot Boots (~$2)', why:'Gives Crackdown Construct haste and hexproof. Haste lets you attack the same turn you pump; hexproof protects it from removal after Martyrdom resolves.'},
+      {card:'Lightning Greaves (~$2)', why:'Same protection as Swiftfoot but free equip. Protects the Construct before and after targeting it.'},
+      {card:'Idyllic Tutor (~$4)', why:'Tutors Martyrdom or any other enchantment. Finds the key enabler piece on demand.'}
+    ]
+  },
+  {
+    id: 25,
+    uses: [
+      {card:{name:'Hall of Echoes',cmc:0,type_line:'Land'}},
+      {card:{name:'Gisela, Blade of Goldnight',cmc:7,type_line:'Legendary Creature — Angel'}},
+      {card:{name:'Blade of Selves',cmc:2,type_line:'Artifact — Equipment'}}
+    ],
+    colorIdentity: ['R','W'],
+    description: "Hall of Echoes is a land that costs {5} colorless to become a copy of any creature you control until end of turn — the legendary rule is ignored for the turn. Equip Blade of Selves to Gisela. When Gisela attacks, Myriad creates a tapped-and-attacking token copy of her for each other opponent. Each Gisela (original and tokens) doubles damage dealt to that opponent and their permanents independently, so a source's damage compounds by 2 for every attacking Gisela hitting that player. Activate Hall of Echoes to become an additional Gisela copy for an extra attacker. Scales with pod size — massive, simultaneous damage to every opponent.",
+    produces: [{feature:{name:'Massive damage to each opponent'}},{feature:{name:'Hits all opponents simultaneously'}}],
+    upgrades: [
+      {card:'Aggravated Assault (~$15)', why:'Gives you additional combat steps each turn. Each extra combat is another simultaneous swing across all opponents.'},
+      {card:'Strionic Resonator (~$1)', why:'Copies a triggered ability — can copy the Myriad trigger for even more Gisela tokens per attack.'},
+      {card:'Swiftfoot Boots (~$2)', why:'Gives Gisela haste and hexproof. Attack immediately after equipping Blade of Selves; protect her from targeted removal.'}
     ]
   }
 ];
