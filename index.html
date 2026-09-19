@@ -233,7 +233,10 @@ function scoreCombo(combo, totalPrice) {
   // BUDGET — revised divisor $150 for more meaningful differentiation
   const budget = Math.max(0, Math.min(100, Math.round(100 - (totalPrice / 150) * 100)));
 
-  // DISRUPTION RESIST — card type determines how easily each piece is removed
+  // DISRUPTION RESIST — blend of card type (60%) and piece count (40%).
+  // Type alone was too punishing for artifact-heavy combos that compensate
+  // with fewer pieces; piece count provides a floor so a 2-piece artifact
+  // creature combo still beats a 4-piece one of the same card types.
   // (typeLine covers live Commander Spellbook results; type_line covers local ABB data)
   const disruptSum = combo.uses?.reduce((sum, u) => {
     const type = (u.card?.type_line || u.card?.typeLine || u.card?.type || '').toLowerCase();
@@ -249,7 +252,9 @@ function scoreCombo(combo, totalPrice) {
     if (isLand) return sum + 45;
     return sum + 20;
   }, 0) || 0;
-  const disrupt = Math.min(100, Math.round(disruptSum / (combo.uses?.length || 1)));
+  const typeScore = Math.min(100, Math.round(disruptSum / (combo.uses?.length || 1)));
+  const disruptPieceScore = Math.max(0, Math.round(100 - pieces * 12));
+  const disrupt = Math.round(typeScore * 0.6 + disruptPieceScore * 0.4);
 
   // BOARD IMPACT — keyword classification
   const impact = desc.includes('win the game') ? 100
@@ -384,7 +389,7 @@ const AXIS_INFO = {
   'Effort': 'Weighted by number of pieces AND total mana cost. Fewer pieces + cheaper cards = higher score.',
   'Consistency': '1–2 colors = no penalty. 3 colors = −25pts, 4 colors = −50pts, 5 colors = −75pts.',
   'Budget': 'Live prices. Under $5 scores near perfect. $75+ scores zero. Divisor: $150.',
-  'Disruption Resist': 'Artifact creatures are hardest to protect (two removal vectors). Enchantments and lands score best.',
+  'Disruption Resist': '60% card type (artifact creatures hardest to protect, lands best) + 40% piece count. Fewer pieces raises the floor.',
   'Board Impact': 'Win the game = 100. Infinite loop = 95. Sustained engine = 85. Draw engine = 70. Tokens/damage = 60. Minor = 40.',
 };
 
