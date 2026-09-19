@@ -189,10 +189,26 @@ const KNOWN_CMC = {
   // Add future unknown cards here as needed
 };
 
-// Cards genuinely costing {0} — must be excluded from the "unknown CMC"
-// warning even though live API results never carry an explicit cmc:0.
-const FREE_CARDS = ['Ornithopter', 'Memnite', 'Shield Sphere', 'Phyrexian Walker',
-  'Kobolds of Kher Keep', 'Crimson Kobolds', 'Crookshank Kobolds', 'Hall of Echoes'];
+// Commander Spellbook's card objects never carry a mana-value field (verified
+// against the live API — no cmc, manaValue, or convertedManaCost under any
+// name), so CMC for live results is backfilled from Scryfall by oracleId and
+// cached here to avoid re-fetching the same card. See fetchCMCByOracleId.
+const cmcCache = {};
+
+async function fetchCMCByOracleId(oracleId) {
+  if (!oracleId || cmcCache[oracleId] !== undefined) return cmcCache[oracleId];
+  try {
+    const r = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent('oracleid:' + oracleId)}`);
+    if (!r.ok) { cmcCache[oracleId] = null; return null; }
+    const d = await r.json();
+    const cmc = d.data?.[0]?.cmc ?? null;
+    cmcCache[oracleId] = cmc;
+    return cmc;
+  } catch {
+    cmcCache[oracleId] = null;
+    return null;
+  }
+}
 
 function scoreCombo(combo, totalPrice) {
   const pieces = combo.uses?.length || 2;
@@ -203,14 +219,10 @@ function scoreCombo(combo, totalPrice) {
   const totalCMC = combo.uses?.reduce((sum, u) => {
     const name = u.card?.name || '';
     if (KNOWN_CMC[name] !== undefined) return sum + KNOWN_CMC[name];
-    if (FREE_CARDS.includes(name)) return sum + 0;
-    return sum + (u.card?.cmc || 0);
+    if (u.card?.cmc !== undefined) return sum + u.card.cmc;
+    const cached = u.card?.oracleId ? cmcCache[u.card.oracleId] : undefined;
+    return sum + (cached || 0);
   }, 0) || 0;
-  const hasUnknownCMC = combo.uses?.some(u => {
-    const name = u.card?.name || '';
-    if (KNOWN_CMC[name] !== undefined || FREE_CARDS.includes(name)) return false;
-    return !u.card?.cmc && u.card?.cmc !== 0;
-  }) || false;
   const pieceScore = Math.max(0, Math.round(100 - ((pieces - 2) / 4) * 100));
   const cmcScore = Math.max(0, Math.round(100 - (totalCMC / 15) * 100));
   const effort = Math.round(pieceScore * 0.5 + cmcScore * 0.5);
@@ -251,7 +263,7 @@ function scoreCombo(combo, totalPrice) {
   );
 
   const grade = total >= 80 ? 'S' : total >= 65 ? 'A' : total >= 45 ? 'B' : 'C';
-  return { total, grade, effort, consistency, budget, disrupt, impact, hasUnknownCMC };
+  return { total, grade, effort, consistency, budget, disrupt, impact };
 }
 
 function classifyType(combo) {
@@ -407,11 +419,6 @@ function ComboCard({ combo, prices }) {
             {combo.userDiscovered && (
               <span style={{fontSize:'10px',padding:'2px 8px',borderRadius:'20px',fontWeight:'500',background:'rgba(139,92,246,0.15)',color:'#a78bfa',border:'1px solid rgba(139,92,246,0.3)'}}>
                 🔍 User Discovered
-              </span>
-            )}
-            {sc.hasUnknownCMC && (
-              <span style={{fontSize:'10px',padding:'2px 8px',borderRadius:'20px',fontWeight:'500',background:'rgba(234,179,8,0.15)',color:'#fbbf24',border:'1px solid rgba(234,179,8,0.3)'}}>
-                ⚠️ Score estimated
               </span>
             )}
             <span className="meta-pill pill-type">{type}</span>
@@ -948,7 +955,14 @@ function App() {
 
       if (results.length > 0) {
         const allCards = [...new Set(results.flatMap(c => c.uses?.map(u => u.card?.name).filter(Boolean) || []))];
-        const entries = await Promise.all(allCards.map(async n => [n, await fetchPrice(n)]));
+        const oracleIdsNeeded = [...new Set(
+          results.flatMap(c => c.uses?.filter(u => u.card?.cmc === undefined && u.card?.oracleId && KNOWN_CMC[u.card?.name] === undefined)
+            .map(u => u.card.oracleId) || [])
+        )];
+        const [entries] = await Promise.all([
+          Promise.all(allCards.map(async n => [n, await fetchPrice(n)])),
+          Promise.all(oracleIdsNeeded.map(id => fetchCMCByOracleId(id)))
+        ]);
         setPrices(Object.fromEntries(entries));
       }
     } catch (e) {
