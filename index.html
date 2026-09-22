@@ -156,26 +156,27 @@
 const { useState } = React;
 
 const LEADERBOARD = [
-  { name: 'Taii Wakeen + Blazing Volley',                price: 0.75,  score: 93, grade: 'S', colors: 'RW',    pieces: 2, type: 'Soft Lock' },
+  { name: 'Taii Wakeen + Blazing Volley',                price: 0.75,  score: 92, grade: 'S', colors: 'RW',    pieces: 2, type: 'Soft Lock' },
   { name: 'Presence of Gond + Midnight Guard',           price: 0.52,  score: 90, grade: 'S', colors: 'GW',    pieces: 2, type: 'Infinite Tokens' },
-  { name: 'Basking Broodscale + Mazirek',                price: 1.81,  score: 87, grade: 'S', colors: 'BG',    pieces: 2, type: 'Infinite Loop' },
-  { name: 'Herd Baloth + Ivy Lane Denizen',              price: 1.79,  score: 84, grade: 'S', colors: 'G',     pieces: 2, type: 'Infinite Tokens' },
-  { name: 'Crackdown Construct + Greaves + Ornithopter', price: 3.50,  score: 84, grade: 'S', colors: '—',     pieces: 3, type: 'Glass Cannon' },
-  { name: 'Silver Myr + Hawkeye\'s Bow + Freed',        price: 1.97,  score: 83, grade: 'S', colors: 'U',     pieces: 3, type: 'Infinite Damage' },
-  { name: 'Radagast + Psychosis Crawler',                price: 3.42,  score: 80, grade: 'S', colors: 'G',     pieces: 2, type: 'Drain Engine' },
-  { name: 'Electro + Magda + Soulbright Flamekin',      price: 6.85,  score: 80, grade: 'S', colors: 'R',     pieces: 3, type: 'Token Engine' },
-  { name: 'Bloodthirsty Conqueror + Blight-Priest',     price: 18.98, score: 79, grade: 'A', colors: 'B',     pieces: 2, type: 'Drain Engine' },
-  { name: 'Fateful Discovery + Locust God + Donatello', price: 23.49, score: 79, grade: 'A', colors: 'UR',    pieces: 3, type: 'Draw Engine' },
-  { name: 'Hawkeye\'s Bow + Pemmin\'s Aura + Birds',   price: 6.79,  score: 78, grade: 'A', colors: 'GUR',   pieces: 3, type: 'Infinite Damage' },
-  { name: 'Shorikai + Palladium Myr + Intruder Alarm',  price: 28.50, score: 76, grade: 'A', colors: 'WU',    pieces: 3, type: 'Infinite Loop' },
-  { name: 'Hall of Echoes + Gisela + Blade of Selves',  price: 22,    score: 73, grade: 'A', colors: 'RW',    pieces: 3, type: 'Combat Damage' },
-  { name: 'Crackdown Construct + Martyrdom + Ignition', price: 7,     score: 71, grade: 'A', colors: 'RW',    pieces: 3, type: 'Glass Cannon' },
-  { name: 'Filigree Sages + Timeless Lotus',            price: 6.06,  score: 68, grade: 'A', colors: 'WUBRG', pieces: 2, type: 'Infinite Mana' },
-  { name: 'Kudo + Nature\'s Revolt + Elesh Norn',      price: 26,    score: 68, grade: 'A', colors: 'GW',    pieces: 3, type: 'Stax Lock' },
-  { name: 'Bramble Sovereign + Notary Hobbits',         price: 6.15,  score: 66, grade: 'A', colors: 'G',     pieces: 2, type: 'Token Engine' },
-  { name: 'Scrawling Crawler + Forced Fruition + Narset', price: 15.53, score: 63, grade: 'B', colors: 'U',   pieces: 3, type: 'Hard Lock' },
-  { name: 'Memnite + War-Whip + Koll + Skullclamp',    price: 3.06,  score: 55, grade: 'B', colors: 'RW',    pieces: 4, type: 'Draw Engine' },
-  { name: 'Aquamoeba Engine',                           price: 11.20, score: 54, grade: 'B', colors: 'U',     pieces: 4, type: 'Draw Engine' },
+  { name: 'Basking Broodscale + Mazirek',                price: 1.81,  score: 86, grade: 'S', colors: 'BG',    pieces: 2, type: 'Infinite Loop' },
+  { name: 'Silver Myr + Hawkeye\'s Bow + Freed',        price: 1.97,  score: 84, grade: 'S', colors: 'U',     pieces: 3, type: 'Infinite Damage' },
+  { name: 'Herd Baloth + Ivy Lane Denizen',              price: 1.79,  score: 83, grade: 'S', colors: 'G',     pieces: 2, type: 'Infinite Tokens' },
+  { name: 'Crackdown Construct + Greaves + Ornithopter', price: 3.50,  score: 82, grade: 'S', colors: '—',     pieces: 3, type: 'Glass Cannon' },
+  { name: 'Bramble Sovereign + Notary Hobbits',         price: 6.15,  score: 82, grade: 'S', colors: 'G',     pieces: 2, type: 'Token Engine' },
+  { name: 'Radagast + Psychosis Crawler',                price: 3.42,  score: 81, grade: 'S', colors: 'G',     pieces: 2, type: 'Drain Engine' },
+  { name: 'Bloodthirsty Conqueror + Blight-Priest',     price: 18.98, score: 81, grade: 'S', colors: 'B',     pieces: 2, type: 'Drain Engine' },
+  { name: 'Memnite + War-Whip + Koll + Skullclamp',    price: 3.06,  score: 78, grade: 'A', colors: 'RW',    pieces: 4, type: 'Draw Engine' },
+  { name: 'Electro + Magda + Soulbright Flamekin',      price: 6.85,  score: 77, grade: 'A', colors: 'R',     pieces: 3, type: 'Token Engine' },
+  { name: 'Hawkeye\'s Bow + Pemmin\'s Aura + Birds',   price: 6.79,  score: 77, grade: 'A', colors: 'GUR',   pieces: 3, type: 'Infinite Damage' },
+  { name: 'Hall of Echoes + Gisela + Blade of Selves',  price: 22,    score: 77, grade: 'A', colors: 'RW',    pieces: 3, type: 'Combat Damage' },
+  { name: 'Crackdown Construct + Martyrdom + Ignition', price: 7,     score: 76, grade: 'A', colors: 'RW',    pieces: 3, type: 'Glass Cannon' },
+  { name: 'Aquamoeba Engine',                           price: 11.20, score: 75, grade: 'A', colors: 'U',     pieces: 4, type: 'Draw Engine' },
+  { name: 'Shorikai + Palladium Myr + Intruder Alarm',  price: 28.50, score: 74, grade: 'A', colors: 'WU',    pieces: 3, type: 'Infinite Loop' },
+  { name: 'Scrawling Crawler + Forced Fruition + Narset', price: 15.53, score: 74, grade: 'A', colors: 'U',   pieces: 3, type: 'Hard Lock' },
+  { name: 'Dawnsire + Stuffy Doll + Mindskinner',       price: 12,    score: 72, grade: 'A', colors: 'U',     pieces: 3, type: 'Mill Engine' },
+  { name: 'Kudo + Nature\'s Revolt + Elesh Norn',      price: 26,    score: 71, grade: 'A', colors: 'GW',    pieces: 3, type: 'Stax Lock' },
+  { name: 'Filigree Sages + Timeless Lotus',            price: 6.06,  score: 60, grade: 'B', colors: 'WUBRG', pieces: 2, type: 'Infinite Mana' },
+  { name: 'Fateful Discovery + Locust God + Donatello', price: 23.49, score: 58, grade: 'B', colors: 'UR',    pieces: 3, type: 'Draw Engine' },
   { name: 'Chatterfang Engine',                         price: 7.75,  score: 52, grade: 'B', colors: 'BG',    pieces: 4, type: 'Token Engine' },
 ];
 
@@ -233,28 +234,15 @@ function scoreCombo(combo, totalPrice) {
   // BUDGET — revised divisor $150 for more meaningful differentiation
   const budget = Math.max(0, Math.min(100, Math.round(100 - (totalPrice / 150) * 100)));
 
-  // DISRUPTION RESIST — blend of card type (60%) and piece count (40%).
-  // Type alone was too punishing for artifact-heavy combos that compensate
-  // with fewer pieces; piece count provides a floor so a 2-piece artifact
-  // creature combo still beats a 4-piece one of the same card types.
+  // DISRUPTION RESIST — type-based point scale, normalized against the best
+  // possible score for the piece count (all 5s). No blend with piece count:
+  // a combo's removal profile is about what it's made of, not how many pieces.
   // (typeLine covers live Commander Spellbook results; type_line covers local ABB data)
-  const disruptSum = combo.uses?.reduce((sum, u) => {
-    const type = (u.card?.type_line || u.card?.typeLine || u.card?.type || '').toLowerCase();
-    const isArtifactCreature = type.includes('artifact') && type.includes('creature');
-    const isCreature = type.includes('creature');
-    const isArtifact = type.includes('artifact') && !type.includes('creature');
-    const isEnchantment = type.includes('enchantment');
-    const isLand = type.includes('land');
-    if (isArtifactCreature) return sum + 10;
-    if (isCreature) return sum + 20;
-    if (isArtifact) return sum + 25;
-    if (isEnchantment) return sum + 35;
-    if (isLand) return sum + 45;
-    return sum + 20;
-  }, 0) || 0;
-  const typeScore = Math.min(100, Math.round(disruptSum / (combo.uses?.length || 1)));
-  const disruptPieceScore = Math.max(0, Math.round(100 - pieces * 12));
-  const disrupt = Math.round(typeScore * 0.6 + disruptPieceScore * 0.4);
+  const typePoints = combo.uses?.reduce((sum, u) => {
+    const typeLine = u.card?.typeLine || u.card?.type_line || u.card?.type || '';
+    return sum + getPieceDisruptScore(typeLine);
+  }, 0) || (pieces * 3);
+  const disrupt = Math.round((typePoints / (pieces * 5)) * 100);
 
   // BOARD IMPACT — keyword classification
   const impact = desc.includes('win the game') ? 100
@@ -269,6 +257,21 @@ function scoreCombo(combo, totalPrice) {
 
   const grade = total >= 80 ? 'S' : total >= 65 ? 'A' : total >= 45 ? 'B' : 'C';
   return { total, grade, effort, consistency, budget, disrupt, impact };
+}
+
+// DISRUPTION RESIST — how hard a single piece is to remove, 1 (worst) to 5 (best).
+// Land or Instant/Sorcery = 5 (safest, spells are gone once resolved/lands
+// rarely targeted), Enchantment = 4, Artifact = 3, Creature = 2, Artifact
+// Creature = 1 (most vulnerable — faces both creature AND artifact removal).
+function getPieceDisruptScore(typeLine) {
+  const t = (typeLine || '').toLowerCase();
+  if (t.includes('land')) return 5;
+  if (t.includes('instant') || t.includes('sorcery')) return 5;
+  if (t.includes('enchantment')) return 4;
+  if (t.includes('artifact') && t.includes('creature')) return 1;
+  if (t.includes('artifact')) return 3;
+  if (t.includes('creature')) return 2;
+  return 3; // default to artifact-level for unknown types
 }
 
 function classifyType(combo) {
@@ -389,7 +392,7 @@ const AXIS_INFO = {
   'Effort': 'Weighted by number of pieces AND total mana cost. Fewer pieces + cheaper cards = higher score.',
   'Consistency': '1–2 colors = no penalty. 3 colors = −25pts, 4 colors = −50pts, 5 colors = −75pts.',
   'Budget': 'Live prices. Under $5 scores near perfect. $75+ scores zero. Divisor: $150.',
-  'Disruption Resist': '60% card type (artifact creatures hardest to protect, lands best) + 40% piece count. Fewer pieces raises the floor.',
+  'Disruption Resist': 'Each piece scored 1-5 by type — artifact creature=1 (worst), creature=2, artifact=3, enchantment=4, land/instant/sorcery=5 (best).',
   'Board Impact': 'Win the game = 100. Infinite loop = 95. Sustained engine = 85. Draw engine = 70. Tokens/damage = 60. Minor = 40.',
 };
 
@@ -849,6 +852,22 @@ const ABB_COMBOS = [
       {card:'Aggravated Assault (~$15)', why:'Gives you additional combat steps each turn. Each extra combat is another simultaneous swing across all opponents.'},
       {card:'Strionic Resonator (~$1)', why:'Copies a triggered ability — can copy the Myriad trigger for even more Gisela tokens per attack.'},
       {card:'Swiftfoot Boots (~$2)', why:'Gives Gisela haste and hexproof. Attack immediately after equipping Blade of Selves; protect her from targeted removal.'}
+    ]
+  },
+  {
+    id: 26,
+    uses: [
+      {card:{name:'Dawnsire, Sunstar Dreadnought',cmc:5,type_line:'Legendary Artifact — Spacecraft'}},
+      {card:{name:'Stuffy Doll',cmc:5,type_line:'Artifact Creature — Construct'}},
+      {card:{name:'The Mindskinner',cmc:3,type_line:'Legendary Enchantment Creature — Nightmare'}}
+    ],
+    colorIdentity: ['U'],
+    description: "Station Dawnsire by tapping The Mindskinner — Station puts charge counters on Dawnsire equal to the tapped creature's power, and Mindskinner's power is 10, instantly hitting the 10+ threshold in one activation. Tapping a creature to pay another permanent's cost isn't affected by summoning sickness, so no haste is needed. Stuffy Doll also needs no haste since it never attacks. Attack with any creature — Dawnsire's 10+ ability triggers, dealing 100 damage to Stuffy Doll (a legal creature target). Stuffy Doll's own trigger tries to redirect that 100 damage to your chosen opponent, but Mindskinner intercepts first: its replacement effect prevents damage from your sources to any opponent and instead mills that many cards from EVERY opponent's library. All opponents mill 100 cards simultaneously. Three-card mono-blue combo, no haste required on any piece.",
+    produces: [{feature:{name:'Mill all opponents 100 cards'}},{feature:{name:'One-shot library wipe'}}],
+    upgrades: [
+      {card:'Hullbreaker Horror (~$3)', why:'Uncounterable bounce ability protects your setup from interaction at instant speed. Hard to remove.'},
+      {card:'Propaganda (~$4)', why:'Makes opponents pay {2} per attacking creature — buys time to assemble the 3-piece combo safely.'},
+      {card:'Counterspell (~$1)', why:'Protect Mindskinner from removal; it is the key piece opponents must answer to stop the combo.'}
     ]
   }
 ];
