@@ -1062,22 +1062,69 @@ const ABB_COMBOS = [
 ];
 
 // ─── DECK ANALYZER ──────────────────────────────────────────────────────────
-// Parses a Moxfield-style plain text decklist into a de-duplicated list of
-// card names, stripping quantities, set/collector info, and section headers.
+// Parses a plain text decklist into a de-duplicated list of card names,
+// stripping quantities, set/collector info, and section headers. Handles
+// exports from Moxfield, Archidekt, Manabox, and EDHREC.
 function parseDeckList(text) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   const cardNames = [];
 
   for (const line of lines) {
-    if (/^(\/\/|#|-{3}|commander|creature|instant|sorcery|enchantment|artifact|land|planeswalker)/i.test(line)) continue;
+    // Skip blank lines and section headers
+    // Handles: "// Creatures (32)", "# Lands", "--- Sideboard ---", "Commander", plain category words.
+    // The category-word check requires the word to be the WHOLE line (plus an
+    // optional count/colon) so real card names that start with the same word —
+    // "Land Tax", "Artifact Mutation", "Commander's Sphere" — aren't dropped.
+    if (/^(\/\/|#|-{2,}|SB:|CM:)/i.test(line)) continue;
+    if (/^(COMMANDER|SIDEBOARD|MAINBOARD|CREATURES?|INSTANTS?|SORCER(?:Y|IES)|ENCHANTMENTS?|ARTIFACTS?|LANDS?|PLANESWALKERS?)\s*(\(\d+\))?\s*:?\s*$/i.test(line)) continue;
 
-    const match = line.match(/^(?:\d+x?\s+)?(.+?)(?:\s+\([A-Z0-9]+\)\s+\d+)?(?:\s+\*[A-Z]+\*)?$/);
-    if (match) {
-      const name = match[1].trim();
-      if (name && name.length > 1) cardNames.push(name);
-    }
+    // Skip lines that are just numbers or very short
+    if (line.length < 2) continue;
+
+    let cleaned = line;
+
+    // Remove quantity prefix: "1 ", "1x ", "2x ", "*1 ", etc.
+    cleaned = cleaned.replace(/^\*?\d+x?\s+/i, '');
+
+    // Strip trailing set/collector/condition/foil/price/language tags. Some
+    // exports stack several of these at once (e.g. Moxfield foils: "(C21) 263
+    // *F*"), and each regex below is anchored to the end of the string, so a
+    // later tag can block an earlier one from matching on a single pass —
+    // loop until nothing more is stripped instead of depending on order.
+    let prevCleaned;
+    do {
+      prevCleaned = cleaned;
+
+      // Archidekt set code in square brackets: [C21], [MH2]
+      cleaned = cleaned.replace(/\s+\[[A-Z0-9]+\]\s*$/i, '');
+
+      // Moxfield/EDHREC set code in parentheses with collector number: (C21) 232
+      cleaned = cleaned.replace(/\s+\([A-Z0-9]+\)\s+\d+\s*$/i, '');
+
+      // Moxfield set code in parentheses without collector number: (C21)
+      cleaned = cleaned.replace(/\s+\([A-Z0-9]{2,6}\)\s*$/i, '');
+
+      // Foil/special markers: *F*, *E*, *FOIL*, (FOIL)
+      cleaned = cleaned.replace(/\s*\*[A-Z]+\*\s*$/i, '');
+      cleaned = cleaned.replace(/\s*\(FOIL\)\s*$/i, '');
+
+      // Manabox condition tags: [NM], [LP], [MP], [HP]
+      cleaned = cleaned.replace(/\s+\[(NM|LP|MP|HP|DMG)\]\s*$/i, '');
+
+      // Trailing price or language tags some exports add
+      cleaned = cleaned.replace(/\s+\$[\d.]+\s*$/, '');
+      cleaned = cleaned.replace(/\s+\b(EN|JP|DE|FR|IT|ES|PT|KR|RU|CS|CT)\b\s*$/i, '');
+    } while (cleaned !== prevCleaned);
+
+    cleaned = cleaned.trim();
+
+    // Skip if what's left is empty, a number, or looks like a header
+    if (!cleaned || /^\d+$/.test(cleaned) || cleaned.length < 2) continue;
+
+    cardNames.push(cleaned);
   }
 
+  // Deduplicate while preserving order
   return [...new Set(cardNames)];
 }
 
@@ -1550,7 +1597,7 @@ function App() {
                 value={deckText}
                 onChange={e => setDeckText(e.target.value)}
               />
-              <div style={{fontSize:11,color:'var(--text2)',marginTop:6}}>Supports Moxfield URLs and plain text exports from any deckbuilder</div>
+              <div style={{fontSize:11,color:'var(--text2)',marginTop:6}}>Supports Moxfield, Archidekt, Manabox, and EDHREC plain text exports — or paste a Moxfield deck URL</div>
               <div style={{display:'flex',gap:10,marginTop:10}}>
                 <button className="search-btn" onClick={analyzeDeckHandler} disabled={deckLoading}>{deckLoading ? 'Analyzing...' : 'Analyze Deck'}</button>
                 <button type="button" className="filter-btn" onClick={clearDeckAnalysis}>Clear</button>
