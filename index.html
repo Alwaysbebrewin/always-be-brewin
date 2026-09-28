@@ -1081,6 +1081,37 @@ function parseDeckList(text) {
   return [...new Set(cardNames)];
 }
 
+function isMoxfieldUrl(input) {
+  return /moxfield\.com\/decks\/([a-zA-Z0-9_-]+)/i.test(input.trim());
+}
+
+function extractMoxfieldId(url) {
+  const match = url.trim().match(/moxfield\.com\/decks\/([a-zA-Z0-9_-]+)/i);
+  return match ? match[1] : null;
+}
+
+// Moxfield's API doesn't send CORS headers for browser requests, so this
+// goes through the netlify/functions/moxfield.js proxy instead of hitting
+// api.moxfield.com directly (same reason Commander Spellbook is proxied).
+async function fetchMoxfieldDeck(deckId) {
+  const res = await fetch(`/.netlify/functions/moxfield?deckId=${encodeURIComponent(deckId)}`);
+  if (!res.ok) throw new Error(`Moxfield API returned ${res.status}`);
+  const data = await res.json();
+
+  const cardNames = [];
+  const zones = ['commanders', 'mainboard', 'sideboard', 'companions'];
+  for (const zone of zones) {
+    if (data[zone]) {
+      for (const key of Object.keys(data[zone])) {
+        const entry = data[zone][key];
+        const name = entry.card?.name || key;
+        if (name) cardNames.push(name);
+      }
+    }
+  }
+  return [...new Set(cardNames)];
+}
+
 // Checks a list of combos (local ABB_COMBOS or live Commander Spellbook
 // results) against a deck (a lowercase Set of card names) for combos that
 // are fully present, or missing exactly one piece (a "near miss").
@@ -1170,6 +1201,7 @@ function App() {
   const [deckApiError, setDeckApiError] = useState('');
   const [deckResults, setDeckResults] = useState(null);
   const [deckPrices, setDeckPrices] = useState({});
+  const [deckStage, setDeckStage] = useState('');
 
   useEffect(() => {
     function handleOutsideClick(e) {
@@ -1260,19 +1292,48 @@ function App() {
     setDeckError('');
     setDeckWarning('');
     setDeckApiError('');
+    setDeckStage('');
     setDeckProgress({ checked: 0, total: 0 });
   }
 
   async function analyzeDeckHandler() {
-    if (!deckText.trim()) { setDeckError('Please paste a decklist first'); return; }
-    const cardNames = parseDeckList(deckText);
-    if (cardNames.length === 0) { setDeckError('Please paste a decklist first'); return; }
+    const text = deckText.trim();
+    if (!text) { setDeckError('Please paste a Moxfield URL or decklist first'); return; }
 
     setDeckError('');
     setDeckApiError('');
+    setDeckWarning('');
     setDeckResults(null);
-    setDeckWarning(cardNames.length < 10 ? `Only ${cardNames.length} card${cardNames.length !== 1 ? 's' : ''} detected — make sure you're using Moxfield plain text export format` : '');
-    setDeckLoading(true);
+
+    let cardNames = [];
+
+    if (isMoxfieldUrl(text)) {
+      const deckId = extractMoxfieldId(text);
+      setDeckLoading(true);
+      setDeckStage('Fetching deck from Moxfield...');
+      setDeckProgress({ checked: 0, total: 0 });
+      try {
+        cardNames = await fetchMoxfieldDeck(deckId);
+        if (cardNames.length === 0) throw new Error('No cards found');
+      } catch (err) {
+        setDeckLoading(false);
+        setDeckStage('');
+        setDeckError("Couldn't load that Moxfield deck — it may be set to private, or Moxfield's API is temporarily unavailable. Export your deck as plain text from Moxfield (Share → Export → Plain Text) and paste it here instead.");
+        return;
+      }
+    } else {
+      cardNames = parseDeckList(text);
+      if (cardNames.length === 0) {
+        setDeckWarning("Only 0 cards detected — make sure you're using plain text export format, or paste a Moxfield URL instead");
+        return;
+      }
+      if (cardNames.length < 10) {
+        setDeckWarning(`Only ${cardNames.length} card${cardNames.length !== 1 ? 's' : ''} detected — make sure you're using plain text export format, or paste a Moxfield URL instead`);
+      }
+      setDeckLoading(true);
+    }
+
+    setDeckStage('');
     setDeckProgress({ checked: 0, total: cardNames.length });
 
     const deckSet = new Set(cardNames.map(n => n.toLowerCase()));
@@ -1485,10 +1546,11 @@ function App() {
             <div className="search-panel">
               <textarea
                 className="deck-textarea"
-                placeholder="Paste your decklist here (Moxfield plain text export)..."
+                placeholder="Paste a Moxfield deck URL (moxfield.com/decks/...) or your plain text decklist..."
                 value={deckText}
                 onChange={e => setDeckText(e.target.value)}
               />
+              <div style={{fontSize:11,color:'var(--text2)',marginTop:6}}>Supports Moxfield URLs and plain text exports from any deckbuilder</div>
               <div style={{display:'flex',gap:10,marginTop:10}}>
                 <button className="search-btn" onClick={analyzeDeckHandler} disabled={deckLoading}>{deckLoading ? 'Analyzing...' : 'Analyze Deck'}</button>
                 <button type="button" className="filter-btn" onClick={clearDeckAnalysis}>Clear</button>
@@ -1496,7 +1558,7 @@ function App() {
               {deckError && <div style={{color:'var(--red)',fontSize:12,marginTop:8}}>{deckError}</div>}
               {deckWarning && <div style={{color:'var(--gold)',fontSize:12,marginTop:8}}>{deckWarning}</div>}
             </div>
-            {deckLoading && <div className="status"><div className="spinner"/><div>Analyzing deck... ({deckProgress.checked} of {deckProgress.total} cards checked)</div></div>}
+            {deckLoading && <div className="status"><div className="spinner"/><div>{deckStage || `Analyzing deck... (${deckProgress.checked} of ${deckProgress.total} cards checked)`}</div></div>}
             {!deckLoading && deckApiError && <div className="status" style={{color:'var(--red)'}}>{deckApiError}</div>}
             {!deckLoading && deckResults && (
               <>
