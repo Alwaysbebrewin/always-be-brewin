@@ -130,6 +130,64 @@
     .card-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
     .chevron { transition: transform .2s; display: inline-block; color: var(--text2); font-size: 12px; }
     .chevron.open { transform: rotate(180deg); }
+    .search-wrapper { position: relative; flex: 1; }
+    .autocomplete-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      z-index: 100;
+      max-height: 280px;
+      overflow-y: auto;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      margin-top: 4px;
+    }
+    .autocomplete-item {
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+    }
+    .autocomplete-item:last-child { border-bottom: none; }
+    .autocomplete-item:hover { background: var(--surface); }
+    .leaderboard-combo-name.clickable {
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .leaderboard-combo-name.clickable:hover { opacity: .8; }
+    .copy-link-btn {
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text2);
+      font-size: 12px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .copy-link-btn:hover { border-color: var(--green); color: var(--green); }
+    .card-images-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .combo-card-img {
+      width: calc(50% - 4px);
+      max-width: 180px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .card-images-row:has(.combo-card-img:nth-child(3)) .combo-card-img {
+      width: calc(33% - 6px);
+      max-width: 120px;
+    }
     .visitor-badge {
       position: fixed;
       bottom: 16px;
@@ -153,31 +211,31 @@
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState } = React;
+const { useState, useEffect, useRef } = React;
 
 const LEADERBOARD = [
-  { name: 'Taii Wakeen + Blazing Volley',                price: 0.75,  score: 92, grade: 'S', colors: 'RW',    pieces: 2, type: 'Soft Lock' },
-  { name: 'Presence of Gond + Midnight Guard',           price: 0.52,  score: 90, grade: 'S', colors: 'GW',    pieces: 2, type: 'Infinite Tokens' },
-  { name: 'Basking Broodscale + Mazirek',                price: 1.81,  score: 86, grade: 'S', colors: 'BG',    pieces: 2, type: 'Infinite Loop' },
-  { name: 'Silver Myr + Hawkeye\'s Bow + Freed',        price: 1.97,  score: 84, grade: 'S', colors: 'U',     pieces: 3, type: 'Infinite Damage' },
-  { name: 'Herd Baloth + Ivy Lane Denizen',              price: 1.79,  score: 83, grade: 'S', colors: 'G',     pieces: 2, type: 'Infinite Tokens' },
-  { name: 'Crackdown Construct + Greaves + Ornithopter', price: 3.50,  score: 82, grade: 'S', colors: '—',     pieces: 3, type: 'Glass Cannon' },
-  { name: 'Bramble Sovereign + Notary Hobbits',         price: 6.15,  score: 82, grade: 'S', colors: 'G',     pieces: 2, type: 'Token Engine' },
-  { name: 'Radagast + Psychosis Crawler',                price: 3.42,  score: 81, grade: 'S', colors: 'G',     pieces: 2, type: 'Drain Engine' },
-  { name: 'Bloodthirsty Conqueror + Blight-Priest',     price: 18.98, score: 81, grade: 'S', colors: 'B',     pieces: 2, type: 'Drain Engine' },
-  { name: 'Memnite + War-Whip + Koll + Skullclamp',    price: 3.06,  score: 78, grade: 'A', colors: 'RW',    pieces: 4, type: 'Draw Engine' },
-  { name: 'Electro + Magda + Soulbright Flamekin',      price: 6.85,  score: 77, grade: 'A', colors: 'R',     pieces: 3, type: 'Token Engine' },
-  { name: 'Hawkeye\'s Bow + Pemmin\'s Aura + Birds',   price: 6.79,  score: 77, grade: 'A', colors: 'GUR',   pieces: 3, type: 'Infinite Damage' },
-  { name: 'Hall of Echoes + Gisela + Blade of Selves',  price: 22,    score: 77, grade: 'A', colors: 'RW',    pieces: 3, type: 'Combat Damage' },
-  { name: 'Crackdown Construct + Martyrdom + Ignition', price: 7,     score: 76, grade: 'A', colors: 'RW',    pieces: 3, type: 'Glass Cannon' },
-  { name: 'Aquamoeba Engine',                           price: 11.20, score: 75, grade: 'A', colors: 'U',     pieces: 4, type: 'Draw Engine' },
-  { name: 'Shorikai + Palladium Myr + Intruder Alarm',  price: 28.50, score: 74, grade: 'A', colors: 'WU',    pieces: 3, type: 'Infinite Loop' },
-  { name: 'Scrawling Crawler + Forced Fruition + Narset', price: 15.53, score: 74, grade: 'A', colors: 'U',   pieces: 3, type: 'Hard Lock' },
-  { name: 'Dawnsire + Stuffy Doll + Mindskinner',       price: 12,    score: 72, grade: 'A', colors: 'U',     pieces: 3, type: 'Mill Engine' },
-  { name: 'Kudo + Nature\'s Revolt + Elesh Norn',      price: 26,    score: 71, grade: 'A', colors: 'GW',    pieces: 3, type: 'Stax Lock' },
-  { name: 'Filigree Sages + Timeless Lotus',            price: 6.06,  score: 60, grade: 'B', colors: 'WUBRG', pieces: 2, type: 'Infinite Mana' },
-  { name: 'Fateful Discovery + Locust God + Donatello', price: 23.49, score: 58, grade: 'B', colors: 'UR',    pieces: 3, type: 'Draw Engine' },
-  { name: 'Chatterfang Engine',                         price: 7.75,  score: 52, grade: 'B', colors: 'BG',    pieces: 4, type: 'Token Engine' },
+  { id: 5,    name: 'Taii Wakeen + Blazing Volley',                price: 0.75,  score: 92, grade: 'S', colors: 'RW',    pieces: 2, type: 'Soft Lock' },
+  { id: 2,    name: 'Presence of Gond + Midnight Guard',           price: 0.52,  score: 90, grade: 'S', colors: 'GW',    pieces: 2, type: 'Infinite Tokens' },
+  { id: 3,    name: 'Basking Broodscale + Mazirek',                price: 1.81,  score: 86, grade: 'S', colors: 'BG',    pieces: 2, type: 'Infinite Loop' },
+  { id: 14,   name: 'Silver Myr + Hawkeye\'s Bow + Freed',        price: 1.97,  score: 84, grade: 'S', colors: 'U',     pieces: 3, type: 'Infinite Damage' },
+  { id: 1,    name: 'Herd Baloth + Ivy Lane Denizen',              price: 1.79,  score: 83, grade: 'S', colors: 'G',     pieces: 2, type: 'Infinite Tokens' },
+  { id: 8,    name: 'Crackdown Construct + Greaves + Ornithopter', price: 3.50,  score: 82, grade: 'S', colors: '—',     pieces: 3, type: 'Glass Cannon' },
+  { id: 11,   name: 'Bramble Sovereign + Notary Hobbits',         price: 6.15,  score: 82, grade: 'S', colors: 'G',     pieces: 2, type: 'Token Engine' },
+  { id: 6,    name: 'Radagast + Psychosis Crawler',                price: 3.42,  score: 81, grade: 'S', colors: 'G',     pieces: 2, type: 'Drain Engine' },
+  { id: 10,   name: 'Bloodthirsty Conqueror + Blight-Priest',     price: 18.98, score: 81, grade: 'S', colors: 'B',     pieces: 2, type: 'Drain Engine' },
+  { id: 12,   name: 'Memnite + War-Whip + Koll + Skullclamp',    price: 3.06,  score: 78, grade: 'A', colors: 'RW',    pieces: 4, type: 'Draw Engine' },
+  { id: 20,   name: 'Electro + Magda + Soulbright Flamekin',      price: 6.85,  score: 77, grade: 'A', colors: 'R',     pieces: 3, type: 'Token Engine' },
+  { id: 13,   name: 'Hawkeye\'s Bow + Pemmin\'s Aura + Birds',   price: 6.79,  score: 77, grade: 'A', colors: 'GUR',   pieces: 3, type: 'Infinite Damage' },
+  { id: 25,   name: 'Hall of Echoes + Gisela + Blade of Selves',  price: 22,    score: 77, grade: 'A', colors: 'RW',    pieces: 3, type: 'Combat Damage' },
+  { id: 24,   name: 'Crackdown Construct + Martyrdom + Ignition', price: 7,     score: 76, grade: 'A', colors: 'RW',    pieces: 3, type: 'Glass Cannon' },
+  { id: 17,   name: 'Aquamoeba Engine',                           price: 11.20, score: 75, grade: 'A', colors: 'U',     pieces: 4, type: 'Draw Engine' },
+  { id: 18,   name: 'Shorikai + Palladium Myr + Intruder Alarm',  price: 28.50, score: 74, grade: 'A', colors: 'WU',    pieces: 3, type: 'Infinite Loop' },
+  { id: 7,    name: 'Scrawling Crawler + Forced Fruition + Narset', price: 15.53, score: 74, grade: 'A', colors: 'U',   pieces: 3, type: 'Hard Lock' },
+  { id: 26,   name: 'Dawnsire + Stuffy Doll + Mindskinner',       price: 12,    score: 72, grade: 'A', colors: 'U',     pieces: 3, type: 'Mill Engine' },
+  { id: 23,   name: 'Kudo + Nature\'s Revolt + Elesh Norn',      price: 26,    score: 71, grade: 'A', colors: 'GW',    pieces: 3, type: 'Stax Lock' },
+  { id: 4,    name: 'Filigree Sages + Timeless Lotus',            price: 6.06,  score: 60, grade: 'B', colors: 'WUBRG', pieces: 2, type: 'Infinite Mana' },
+  { id: 19,   name: 'Fateful Discovery + Locust God + Donatello', price: 23.49, score: 58, grade: 'B', colors: 'UR',    pieces: 3, type: 'Draw Engine' },
+  { id: null, name: 'Chatterfang Engine',                         price: 7.75,  score: 52, grade: 'B', colors: 'BG',    pieces: 4, type: 'Token Engine' },
 ];
 
 // Manual CMC overrides for cards not yet in the Commander Spellbook database
@@ -207,6 +265,27 @@ async function fetchCMCByOracleId(oracleId) {
     return cmc;
   } catch {
     cmcCache[oracleId] = null;
+    return null;
+  }
+}
+
+// Card image cache — keyed by card name — shared across combos so the same
+// card isn't re-fetched from Scryfall when it appears in multiple combos.
+const cardImageCache = {};
+
+async function fetchCardImage(name) {
+  if (!name) return null;
+  if (cardImageCache[name] !== undefined) return cardImageCache[name];
+  try {
+    const r = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`);
+    if (!r.ok) { cardImageCache[name] = null; return null; }
+    const d = await r.json();
+    const url = d.image_uris?.normal || d.image_uris?.large ||
+                d.card_faces?.[0]?.image_uris?.normal || null;
+    cardImageCache[name] = url;
+    return url;
+  } catch {
+    cardImageCache[name] = null;
     return null;
   }
 }
@@ -396,15 +475,44 @@ const AXIS_INFO = {
   'Board Impact': 'Win the game = 100. Infinite loop = 95. Sustained engine = 85. Draw engine = 70. Tokens/damage = 60. Minor = 40.',
 };
 
-function ComboCard({ combo, prices }) {
-  const [open, setOpen] = useState(false);
+function ComboCard({ combo, prices, autoExpand }) {
+  const [open, setOpen] = useState(!!autoExpand);
   const [fullOpen, setFullOpen] = useState(false);
+  const [images, setImages] = useState(null);
+  const [copied, setCopied] = useState(false);
   const cards = combo.uses?.map(u => u.card?.name).filter(Boolean) || [];
   const comboName = cards.join(' + ') || 'Unknown Combo';
   const price = cards.reduce((s, c) => s + (prices[c] || 0), 0);
   const sc = scoreCombo(combo, price);
   const type = classifyType(combo);
   const metrics = getMetrics(combo, sc, price, cards.length);
+
+  useEffect(() => {
+    if (!open || images) return;
+    let cancelled = false;
+    Promise.all(cards.map(name => fetchCardImage(name))).then(imgs => {
+      if (!cancelled) setImages(imgs.filter(Boolean));
+    });
+    return () => { cancelled = true; };
+  }, [open]);
+
+  function copyLink() {
+    const url = `https://alwaysbebrewin.com/?combo=${combo.id}`;
+    const fallbackCopy = () => {
+      const input = document.createElement('input');
+      input.value = url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+    };
+    const showCopied = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(showCopied).catch(() => { fallbackCopy(); showCopied(); });
+    } else {
+      fallbackCopy(); showCopied();
+    }
+  }
   const axes = [
     { name: 'Effort', val: sc.effort, color: '#4ade80', weight: 35 },
     { name: 'Consistency', val: sc.consistency, color: '#60a5fa', weight: 30 },
@@ -414,7 +522,7 @@ function ComboCard({ combo, prices }) {
   ];
   const VERDICT_COLORS = { green: '#4ade80', blue: '#60a5fa', orange: '#fb923c', red: '#f87171' };
   return (
-    <div className="combo-card">
+    <div className="combo-card" id={combo.id ? `combo-${combo.id}` : undefined}>
       <div className="combo-header" onClick={() => setOpen(o => !o)}>
         <div className={`grade grade-${sc.grade}`}>
           <span className="grade-letter">{sc.grade}</span>
@@ -440,7 +548,21 @@ function ComboCard({ combo, prices }) {
       {open && (
         <div className="combo-expand">
           <div className="expand-inner">
-            <div className="section-title" style={{marginBottom:8}}>ABB Score Breakdown</div>
+            {images && images.length > 0 && (
+              <div className="card-images-row">
+                {images.map((url, i) => (
+                  <img key={i} src={url} alt={cards[i] || 'Card'} className="combo-card-img" loading="lazy" />
+                ))}
+              </div>
+            )}
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+              <div className="section-title" style={{marginBottom:0}}>ABB Score Breakdown</div>
+              {combo.id != null && (
+                <button className="copy-link-btn" onClick={(e) => { e.stopPropagation(); copyLink(); }}>
+                  {copied ? '✓ Copied!' : '🔗 Copy Link'}
+                </button>
+              )}
+            </div>
             <div className="axes">
               {axes.map(a => (
                 <div key={a.name} className="axis">
@@ -928,6 +1050,76 @@ function App() {
   const [colorFilter, setColorFilter] = useState([]);
   const [sortMode, setSortMode] = useState('score');
   const [error, setError] = useState('');
+  const [expandTarget, setExpandTarget] = useState(null);
+  const [suggestions, setSuggestions] = useState({});
+  const [activeSuggestField, setActiveSuggestField] = useState(null);
+  const debounceRefs = useRef({});
+
+  useEffect(() => {
+    function handleOutsideClick(e) {
+      if (!e.target.closest('.search-wrapper')) setActiveSuggestField(null);
+    }
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const comboId = params.get('combo');
+    if (comboId) openCombo(parseInt(comboId, 10));
+  }, []);
+
+  useEffect(() => {
+    if (expandTarget == null) return;
+    if (!combos.some(c => c.id === expandTarget)) return;
+    const id = expandTarget;
+    setTimeout(() => {
+      const el = document.getElementById(`combo-${id}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+    setExpandTarget(null);
+  }, [combos]);
+
+  function openCombo(id) {
+    if (!id && id !== 0) return;
+    const combo = ABB_COMBOS.find(c => c.id === id);
+    if (!combo) return;
+    const cardNames = (combo.uses || []).map(u => u.card?.name).filter(Boolean).slice(0, 4);
+    if (cardNames.length === 0) return;
+    setCardInputs([cardNames[0] || '', cardNames[1] || '', cardNames[2] || '', cardNames[3] || '']);
+    setVisibleCount(Math.max(1, cardNames.length));
+    setTab('finder');
+    setExpandTarget(id);
+    search(cardNames);
+  }
+
+  async function fetchSuggestions(idx, query) {
+    if (query.trim().length < 4) {
+      setSuggestions(prev => ({ ...prev, [idx]: [] }));
+      return;
+    }
+    try {
+      const res = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(query)}&include_extras=false`);
+      const data = await res.json();
+      setSuggestions(prev => ({ ...prev, [idx]: (data.data || []).slice(0, 8) }));
+      setActiveSuggestField(idx);
+    } catch {
+      setSuggestions(prev => ({ ...prev, [idx]: [] }));
+    }
+  }
+
+  function handleCardInputChange(idx, val) {
+    updateCard(idx, val);
+    clearTimeout(debounceRefs.current[idx]);
+    debounceRefs.current[idx] = setTimeout(() => fetchSuggestions(idx, val), 300);
+    setActiveSuggestField(idx);
+  }
+
+  function selectSuggestion(idx, name) {
+    updateCard(idx, name);
+    setSuggestions(prev => ({ ...prev, [idx]: [] }));
+    setActiveSuggestField(null);
+  }
 
   async function fetchPrice(name) {
     try {
@@ -946,8 +1138,8 @@ function App() {
     });
   }
 
-  async function search() {
-    const filledCards = cardInputs.slice(0, visibleCount).map(c => c.trim()).filter(Boolean);
+  async function search(overrideCards) {
+    const filledCards = (overrideCards || cardInputs.slice(0, visibleCount)).map(c => c.trim()).filter(Boolean);
     if (filledCards.length === 0) return;
     setLoading(true); setSearched(true); setError(''); setCombos([]); setPrices({});
     try {
@@ -1031,8 +1223,17 @@ function App() {
               <div className="card-field">
                 <label className="card-label">Card 1</label>
                 <div className="search-row">
-                  <input className="search-input" placeholder="e.g. Herd Baloth" value={cardInputs[0]} onChange={e => updateCard(0, e.target.value)} onKeyDown={e => e.key==='Enter' && search()} />
-                  <button className="search-btn" onClick={search} disabled={loading}>{loading ? 'Searching...' : 'Find Combos'}</button>
+                  <div className="search-wrapper">
+                    <input className="search-input" placeholder="e.g. Herd Baloth" value={cardInputs[0]} onChange={e => handleCardInputChange(0, e.target.value)} onKeyDown={e => e.key==='Enter' && search()} />
+                    {activeSuggestField === 0 && suggestions[0]?.length > 0 && (
+                      <div className="autocomplete-dropdown">
+                        {suggestions[0].map(name => (
+                          <div key={name} className="autocomplete-item" onClick={() => selectSuggestion(0, name)}>{name}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button className="search-btn" onClick={() => search()} disabled={loading}>{loading ? 'Searching...' : 'Find Combos'}</button>
                 </div>
               </div>
               {cardInputs.slice(1, visibleCount).map((val, idx) => {
@@ -1040,7 +1241,16 @@ function App() {
                 return (
                   <div className="card-field" key={i}>
                     <label className="card-label">Card {i + 1}</label>
-                    <input className="search-input search-input-sm" placeholder="optional" value={val} onChange={e => updateCard(i, e.target.value)} onKeyDown={e => e.key==='Enter' && search()} />
+                    <div className="search-wrapper" style={{maxWidth:320}}>
+                      <input className="search-input search-input-sm" placeholder="optional" value={val} onChange={e => handleCardInputChange(i, e.target.value)} onKeyDown={e => e.key==='Enter' && search()} />
+                      {activeSuggestField === i && suggestions[i]?.length > 0 && (
+                        <div className="autocomplete-dropdown">
+                          {suggestions[i].map(name => (
+                            <div key={name} className="autocomplete-item" onClick={() => selectSuggestion(i, name)}>{name}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -1069,7 +1279,7 @@ function App() {
             {error && <div className="status" style={{color:'var(--red)'}}>{error}</div>}
             {!loading && searched && sorted.length === 0 && !error && <div className="status">No combos found for "{cardInputs.slice(0, visibleCount).map(c => c.trim()).filter(Boolean).join(' + ')}".</div>}
             {!loading && !searched && <div className="status"><div style={{fontSize:32,marginBottom:12}}>🍺</div><div style={{fontWeight:600,marginBottom:6}}>Start brewing</div><div style={{marginBottom:8}}>Search any card from our hand-scored ABB database.</div><div style={{fontSize:11,color:'var(--text2)'}}>Try: Herd Baloth · Midnight Guard · Mazirek · Taii Wakeen · Scrawling Crawler</div></div>}
-            {sorted.map((c,i) => <ComboCard key={c.id||i} combo={c} prices={prices} />)}
+            {sorted.map((c,i) => <ComboCard key={c.id||i} combo={c} prices={prices} autoExpand={c.id != null && c.id === expandTarget} />)}
             {sorted.length > 0 && <div style={{textAlign:'center',padding:'16px 0',color:'var(--text2)',fontSize:12}}>Showing {sorted.length} combo{sorted.length!==1?'s':''} · Prices from Scryfall · Combos from Commander Spellbook</div>}
           </>
         )}
@@ -1080,7 +1290,11 @@ function App() {
               {LEADERBOARD.map((c,i) => (
                 <div key={c.name} className="lb-row">
                   <span className={`lb-rank ${i<3?'top':''}`}>#{i+1}</span>
-                  <span className="lb-name">{c.name}</span>
+                  {c.id != null ? (
+                    <span className="lb-name leaderboard-combo-name clickable" onClick={() => openCombo(c.id)}>{c.name}</span>
+                  ) : (
+                    <span className="lb-name">{c.name}</span>
+                  )}
                   <span className="lb-price">${c.price.toFixed(2)}</span>
                   <span className={`lb-score lb-${c.grade}`}>{c.grade} · {c.score}</span>
                 </div>
