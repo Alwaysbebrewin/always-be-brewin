@@ -130,6 +130,37 @@
     .card-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
     .chevron { transition: transform .2s; display: inline-block; color: var(--text2); font-size: 12px; }
     .chevron.open { transform: rotate(180deg); }
+    .deck-textarea {
+      width: 100%;
+      min-height: 220px;
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      line-height: 1.5;
+      outline: none;
+      resize: vertical;
+      transition: border-color .15s;
+    }
+    .deck-textarea:focus { border-color: var(--green); }
+    .deck-textarea::placeholder { color: var(--text2); }
+    .missing-piece-banner {
+      font-size: 12px;
+      color: var(--gold);
+      background: rgba(251,191,36,.1);
+      border: 1px solid rgba(251,191,36,.3);
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin-bottom: 8px;
+    }
+    .piece-tag-missing {
+      border: 1px dashed var(--gold);
+      color: var(--gold);
+      background: rgba(251,191,36,.08);
+    }
     .search-wrapper { position: relative; flex: 1; }
     .autocomplete-dropdown {
       position: absolute;
@@ -477,7 +508,7 @@ const AXIS_INFO = {
   'Board Impact': 'Win the game = 100. Infinite loop = 95. Sustained engine = 85. Draw engine = 70. Tokens/damage = 60. Minor = 40.',
 };
 
-function ComboCard({ combo, prices, autoExpand }) {
+function ComboCard({ combo, prices, autoExpand, missingCard }) {
   const [open, setOpen] = useState(!!autoExpand);
   const [fullOpen, setFullOpen] = useState(false);
   const [images, setImages] = useState(null);
@@ -488,6 +519,7 @@ function ComboCard({ combo, prices, autoExpand }) {
   const sc = scoreCombo(combo, price);
   const type = classifyType(combo);
   const metrics = getMetrics(combo, sc, price, cards.length);
+  const missingPrice = missingCard ? prices[missingCard.name] : undefined;
 
   useEffect(() => {
     if (!open || images) return;
@@ -532,6 +564,11 @@ function ComboCard({ combo, prices, autoExpand }) {
         </div>
         <div className="combo-info">
           <div className="combo-title">{comboName}</div>
+          {missingCard && (
+            <div className="missing-piece-banner">
+              Add <strong>{missingCard.name}</strong>{missingPrice ? ` (~$${missingPrice.toFixed(2)})` : ''} to unlock this combo
+            </div>
+          )}
           <div className="combo-meta">
             {combo.abbVerified && <span className="meta-pill pill-abb" style={{background:'rgba(74,222,128,0.15)',color:'#4ade80',border:'1px solid rgba(74,222,128,0.35)',fontWeight:600}}>✓ ABB Verified</span>}
             {combo.userDiscovered && (
@@ -543,7 +580,11 @@ function ComboCard({ combo, prices, autoExpand }) {
             <span className="meta-pill pill-price">${price.toFixed(2)}</span>
             <span className="meta-pill pill-color">{colorIdentityLabel(getComboColors(combo))}</span>
           </div>
-          <div className="combo-pieces">{cards.map(c => <span key={c} className="piece-tag">{c}</span>)}</div>
+          <div className="combo-pieces">
+            {cards.map(c => (
+              <span key={c} className={`piece-tag ${missingCard && c.toLowerCase() === missingCard.name.toLowerCase() ? 'piece-tag-missing' : ''}`}>{c}</span>
+            ))}
+          </div>
         </div>
         <span className={`chevron ${open ? 'open' : ''}`}>▼</span>
       </div>
@@ -1020,6 +1061,47 @@ const ABB_COMBOS = [
   }
 ];
 
+// ─── DECK ANALYZER ──────────────────────────────────────────────────────────
+// Parses a Moxfield-style plain text decklist into a de-duplicated list of
+// card names, stripping quantities, set/collector info, and section headers.
+function parseDeckList(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const cardNames = [];
+
+  for (const line of lines) {
+    if (/^(\/\/|#|-{3}|commander|creature|instant|sorcery|enchantment|artifact|land|planeswalker)/i.test(line)) continue;
+
+    const match = line.match(/^(?:\d+x?\s+)?(.+?)(?:\s+\([A-Z0-9]+\)\s+\d+)?(?:\s+\*[A-Z]+\*)?$/);
+    if (match) {
+      const name = match[1].trim();
+      if (name && name.length > 1) cardNames.push(name);
+    }
+  }
+
+  return [...new Set(cardNames)];
+}
+
+// Checks a list of combos (local ABB_COMBOS or live Commander Spellbook
+// results) against a deck (a lowercase Set of card names) for combos that
+// are fully present, or missing exactly one piece (a "near miss").
+function findDeckMatchesInCombos(combos, deckSet) {
+  const complete = [];
+  const nearMisses = [];
+  for (const combo of combos) {
+    const pieces = combo.uses || [];
+    if (pieces.length === 0) continue;
+    const pieceNames = pieces.map(u => (u.card?.name || '').toLowerCase());
+    const missing = pieceNames.filter(name => !deckSet.has(name));
+    if (missing.length === 0) {
+      complete.push(combo);
+    } else if (missing.length === 1) {
+      const missingPiece = pieces.find(u => (u.card?.name || '').toLowerCase() === missing[0]);
+      nearMisses.push({ combo, missingCard: missingPiece?.card || { name: missing[0] } });
+    }
+  }
+  return { complete, nearMisses };
+}
+
 // Beta access gate
 const BETA_CODE = 'ABB2026';
 const betaKey = 'abb_beta_access';
@@ -1080,6 +1162,14 @@ function App() {
   const [suggestions, setSuggestions] = useState({});
   const [activeSuggestField, setActiveSuggestField] = useState(null);
   const debounceRefs = useRef({});
+  const [deckText, setDeckText] = useState('');
+  const [deckLoading, setDeckLoading] = useState(false);
+  const [deckProgress, setDeckProgress] = useState({ checked: 0, total: 0 });
+  const [deckError, setDeckError] = useState('');
+  const [deckWarning, setDeckWarning] = useState('');
+  const [deckApiError, setDeckApiError] = useState('');
+  const [deckResults, setDeckResults] = useState(null);
+  const [deckPrices, setDeckPrices] = useState({});
 
   useEffect(() => {
     function handleOutsideClick(e) {
@@ -1164,6 +1254,83 @@ function App() {
     });
   }
 
+  function clearDeckAnalysis() {
+    setDeckText('');
+    setDeckResults(null);
+    setDeckError('');
+    setDeckWarning('');
+    setDeckApiError('');
+    setDeckProgress({ checked: 0, total: 0 });
+  }
+
+  async function analyzeDeckHandler() {
+    if (!deckText.trim()) { setDeckError('Please paste a decklist first'); return; }
+    const cardNames = parseDeckList(deckText);
+    if (cardNames.length === 0) { setDeckError('Please paste a decklist first'); return; }
+
+    setDeckError('');
+    setDeckApiError('');
+    setDeckResults(null);
+    setDeckWarning(cardNames.length < 10 ? `Only ${cardNames.length} card${cardNames.length !== 1 ? 's' : ''} detected — make sure you're using Moxfield plain text export format` : '');
+    setDeckLoading(true);
+    setDeckProgress({ checked: 0, total: cardNames.length });
+
+    const deckSet = new Set(cardNames.map(n => n.toLowerCase()));
+    const { complete: localComplete, nearMisses: localNearMisses } = findDeckMatchesInCombos(ABB_COMBOS, deckSet);
+
+    const liveCombos = new Map();
+    const BATCH_SIZE = 10;
+    let anyLiveSuccess = false;
+
+    for (let i = 0; i < cardNames.length; i += BATCH_SIZE) {
+      const batch = cardNames.slice(i, i + BATCH_SIZE);
+      await Promise.all(batch.map(async (cardName) => {
+        try {
+          const res = await fetch(`/.netlify/functions/spellbook?cards=${encodeURIComponent(cardName)}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          const found = data.results || data.variants || [];
+          anyLiveSuccess = true;
+          for (const combo of found) {
+            if (combo?.id != null && !liveCombos.has(combo.id)) liveCombos.set(combo.id, combo);
+          }
+        } catch (e) { /* skip failed lookups */ }
+      }));
+      setDeckProgress({ checked: Math.min(cardNames.length, i + batch.length), total: cardNames.length });
+      if (i + BATCH_SIZE < cardNames.length) await new Promise(r => setTimeout(r, 200));
+    }
+
+    if (!anyLiveSuccess) {
+      setDeckApiError("Couldn't reach the combo database — showing results from the local ABB combo list only.");
+    }
+
+    const { complete: liveComplete, nearMisses: liveNearMisses } = findDeckMatchesInCombos([...liveCombos.values()], deckSet);
+    const completeCombos = [...localComplete, ...liveComplete];
+    const nearMisses = [...localNearMisses, ...liveNearMisses];
+
+    const allCombosForPricing = [...completeCombos, ...nearMisses.map(nm => nm.combo)];
+    const allCardNames = [...new Set(allCombosForPricing.flatMap(c => c.uses?.map(u => u.card?.name).filter(Boolean) || []))];
+    const oracleIdsNeeded = [...new Set(
+      allCombosForPricing.flatMap(c => c.uses?.filter(u => u.card?.cmc === undefined && u.card?.oracleId && KNOWN_CMC[u.card?.name] === undefined)
+        .map(u => u.card.oracleId) || [])
+    )];
+    const [priceEntries] = await Promise.all([
+      Promise.all(allCardNames.map(async n => [n, await fetchPrice(n)])),
+      Promise.all(oracleIdsNeeded.map(id => fetchCMCByOracleId(id)))
+    ]);
+    const priceMap = Object.fromEntries(priceEntries);
+    setDeckPrices(priceMap);
+
+    function priceOf(combo) {
+      return (combo.uses?.map(u => u.card?.name).filter(Boolean) || []).reduce((s, n) => s + (priceMap[n] || 0), 0);
+    }
+    completeCombos.sort((a, b) => scoreCombo(b, priceOf(b)).total - scoreCombo(a, priceOf(a)).total);
+    nearMisses.sort((a, b) => scoreCombo(b.combo, priceOf(b.combo)).total - scoreCombo(a.combo, priceOf(a.combo)).total);
+
+    setDeckResults({ completeCombos, nearMisses });
+    setDeckLoading(false);
+  }
+
   async function search(overrideCards) {
     const filledCards = (overrideCards || cardInputs.slice(0, visibleCount)).map(c => c.trim()).filter(Boolean);
     if (filledCards.length === 0) return;
@@ -1233,7 +1400,7 @@ function App() {
       <nav className="nav">
         <div className="nav-brand">🍺 Always Be Brewin <span>MTG Combo Finder</span></div>
         <div className="nav-tabs">
-          {[['finder','Combos'],['leaderboard','Leaderboard'],['about','Scoring']].map(([id,label]) => (
+          {[['finder','Combos'],['deck','Analyze Deck'],['leaderboard','Leaderboard'],['about','Scoring']].map(([id,label]) => (
             <button key={id} className={`nav-tab ${tab===id?'active':''}`} onClick={() => setTab(id)}>{label}</button>
           ))}
         </div>
@@ -1307,6 +1474,54 @@ function App() {
             {!loading && !searched && <div className="status"><div style={{fontSize:32,marginBottom:12}}>🍺</div><div style={{fontWeight:600,marginBottom:6}}>Start brewing</div><div style={{marginBottom:8}}>Search any card from our hand-scored ABB database.</div><div style={{fontSize:11,color:'var(--text2)'}}>Try: Herd Baloth · Midnight Guard · Mazirek · Taii Wakeen · Scrawling Crawler</div></div>}
             {sorted.map((c,i) => <ComboCard key={c.id||i} combo={c} prices={prices} autoExpand={c.id != null && c.id === expandTarget} />)}
             {sorted.length > 0 && <div style={{textAlign:'center',padding:'16px 0',color:'var(--text2)',fontSize:12}}>Showing {sorted.length} combo{sorted.length!==1?'s':''} · Prices from Scryfall · Combos from Commander Spellbook</div>}
+          </>
+        )}
+        {tab === 'deck' && (
+          <>
+            <div className="hero">
+              <h1>Analyze your <em>deck</em></h1>
+              <p>Paste a decklist and find every combo already in it — plus combos you're just one card away from unlocking.</p>
+            </div>
+            <div className="search-panel">
+              <textarea
+                className="deck-textarea"
+                placeholder="Paste your decklist here (Moxfield plain text export)..."
+                value={deckText}
+                onChange={e => setDeckText(e.target.value)}
+              />
+              <div style={{display:'flex',gap:10,marginTop:10}}>
+                <button className="search-btn" onClick={analyzeDeckHandler} disabled={deckLoading}>{deckLoading ? 'Analyzing...' : 'Analyze Deck'}</button>
+                <button type="button" className="filter-btn" onClick={clearDeckAnalysis}>Clear</button>
+              </div>
+              {deckError && <div style={{color:'var(--red)',fontSize:12,marginTop:8}}>{deckError}</div>}
+              {deckWarning && <div style={{color:'var(--gold)',fontSize:12,marginTop:8}}>{deckWarning}</div>}
+            </div>
+            {deckLoading && <div className="status"><div className="spinner"/><div>Analyzing deck... ({deckProgress.checked} of {deckProgress.total} cards checked)</div></div>}
+            {!deckLoading && deckApiError && <div className="status" style={{color:'var(--red)'}}>{deckApiError}</div>}
+            {!deckLoading && deckResults && (
+              <>
+                <div className="section-title" style={{marginTop:8,marginBottom:12}}>
+                  ✓ {deckResults.completeCombos.length} Combo{deckResults.completeCombos.length !== 1 ? 's' : ''} Found in Your Deck
+                </div>
+                {deckResults.completeCombos.length === 0 && (
+                  <div className="status" style={{padding:'20px'}}>No combos found. Try the near-misses below to upgrade your deck.</div>
+                )}
+                {deckResults.completeCombos.map((c,i) => <ComboCard key={c.id||i} combo={c} prices={deckPrices} />)}
+
+                <div className="section-title" style={{marginTop:28,marginBottom:12}}>
+                  ⚡ {deckResults.nearMisses.length} Combo{deckResults.nearMisses.length !== 1 ? 's' : ''} — 1 Card Away
+                </div>
+                {deckResults.nearMisses.length === 0 && (
+                  <div className="status" style={{padding:'20px'}}>No near-misses found.</div>
+                )}
+                {deckResults.nearMisses.map((nm,i) => (
+                  <ComboCard key={nm.combo.id||i} combo={nm.combo} prices={deckPrices} missingCard={nm.missingCard} />
+                ))}
+                {deckResults.nearMisses.length > 0 && (
+                  <div style={{textAlign:'center',padding:'12px 0 4px',color:'var(--text2)',fontSize:11}}>🔒 More upgrade features coming soon</div>
+                )}
+              </>
+            )}
           </>
         )}
         {tab === 'leaderboard' && (
