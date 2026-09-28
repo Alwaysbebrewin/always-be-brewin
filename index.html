@@ -991,6 +991,30 @@ const ABB_COMBOS = [
       {card:'Propaganda (~$4)', why:'Makes opponents pay {2} per attacking creature — buys time to assemble the 3-piece combo safely.'},
       {card:'Counterspell (~$1)', why:'Protect Mindskinner from removal; it is the key piece opponents must answer to stop the combo.'}
     ]
+  },
+  {
+    id: 27,
+    uses: [{card:{name:'Magus of the Coffers',cmc:5,type_line:'Creature — Human Wizard'}},{card:{name:'Umbral Mantle',cmc:3,type_line:'Artifact — Equipment'}}],
+    colorIdentity: ['B'],
+    description: "Equip Umbral Mantle to Magus of the Coffers. Tap Magus to add {B} for each Swamp you control. Pay {3} to activate Umbral Mantle — untap Magus and give it +2/+2. Repeat. With 4+ Swamps in play, each activation nets mana, generating infinite black mana. Requires 4+ Swamps to go infinite.",
+    produces: [{feature:{name:'Infinite black mana'}}],
+    upgrades: [
+      {card:'Torment of Hailfire (~$5)', why:'Cast for infinite X with your infinite black mana. Drains every opponent to zero simultaneously.'},
+      {card:'Exsanguinate (~$2)', why:'Alternative infinite-X finisher — same drain effect at a lower price point.'},
+      {card:'Cabal Coffers (~$5)', why:'A second Swamp-scaling mana source — helps hit the 4+ Swamps threshold needed to go infinite.'}
+    ]
+  },
+  {
+    id: 28,
+    uses: [{card:{name:'Divining Duelist',cmc:3,type_line:'Creature — Merfolk Wizard'}},{card:{name:'Splinter Twin',cmc:4,type_line:'Enchantment — Aura'}}],
+    colorIdentity: ['U','R'],
+    description: "Enchant Divining Duelist with Splinter Twin. Tap it to create a hasty token copy. The token's ETB triggers — choose to untap target creature, untapping the original Duelist. Tap again. Repeat for infinite hasty 3/2 tokens, then attack for lethal. Divining Duelist has flash, so the entire combo assembles at instant speed on an opponent's end step.",
+    produces: [{feature:{name:'Infinite creature tokens'}},{feature:{name:'Win the game'}}],
+    upgrades: [
+      {card:'Impact Tremors (~$1)', why:'Each hasty token entering deals 1 damage to each opponent. Wins without needing to attack.'},
+      {card:'Purphoros, God of the Forge (~$12)', why:'2 damage per token entering, and indestructible — doesn\'t rely on attacking with the hasty tokens.'},
+      {card:'Spell Pierce (~$1)', why:'Cheap protection to hold up while assembling the flash-speed combo on an opponent\'s end step.'}
+    ]
   }
 ];
 
